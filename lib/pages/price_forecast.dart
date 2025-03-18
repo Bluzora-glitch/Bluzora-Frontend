@@ -358,7 +358,7 @@ class _GraphPlaceholderState extends State<GraphPlaceholder> {
                     legend: Legend(isVisible: true), // แสดง Legend
                     tooltipBehavior:
                         TooltipBehavior(enable: true), // แสดง Tooltip
-                    series: <ChartSeries>[
+                    series: <CartesianSeries>[
                       LineSeries<ChartData, String>(
                         dataSource: dataPoints,
                         xValueMapper: (ChartData data, _) => data.date,
