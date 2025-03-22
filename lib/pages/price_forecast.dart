@@ -31,8 +31,10 @@ class PriceForecastPage extends StatefulWidget {
 }
 
 class _PriceForecastPageState extends State<PriceForecastPage> {
+  // สมมุติว่า vegetableData ยังคงมาจาก assets (หรือ API) สำหรับรายชื่อผัก
   List<dynamic> vegetableData = [];
   String? selectedVegetable;
+  // เปลี่ยนค่าวันที่เป็น String ที่ได้จาก DatePicker ในรูปแบบ "yyyy-MM-dd"
   String? selectedStartDate;
   String? selectedEndDate;
   bool showGraph = false;
@@ -41,15 +43,50 @@ class _PriceForecastPageState extends State<PriceForecastPage> {
   @override
   void initState() {
     super.initState();
-    loadJsonData();
+    loadVegetableData();
   }
 
-  Future<void> loadJsonData() async {
+  Future<void> loadVegetableData() async {
+    // ยังคงโหลดข้อมูลผักจาก assets/vegetables.json ถ้ายังไม่ได้เปลี่ยนแปลง
     String jsonString = await rootBundle.loadString('assets/vegetables.json');
     final data = jsonDecode(jsonString);
     setState(() {
       vegetableData = data;
     });
+  }
+
+  // ฟังก์ชันสำหรับเลือกวันที่เริ่มต้น
+  Future<void> _selectStartDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: selectedStartDate != null
+          ? DateTime.parse(selectedStartDate!)
+          : DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+    );
+    if (picked != null) {
+      setState(() {
+        selectedStartDate = DateFormat('yyyy-MM-dd').format(picked);
+      });
+    }
+  }
+
+  // ฟังก์ชันสำหรับเลือกวันที่สิ้นสุด
+  Future<void> _selectEndDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: selectedEndDate != null
+          ? DateTime.parse(selectedEndDate!)
+          : DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+    );
+    if (picked != null) {
+      setState(() {
+        selectedEndDate = DateFormat('yyyy-MM-dd').format(picked);
+      });
+    }
   }
 
   void onForecastPressed() {
@@ -85,20 +122,28 @@ class _PriceForecastPageState extends State<PriceForecastPage> {
               onVegetableChanged: (value) {
                 setState(() {
                   selectedVegetable = value;
+                  // ถ้าเลือกผักแล้ว สามารถกำหนดวันที่เริ่มต้นและสิ้นสุดแบบเริ่มต้นได้
+                  // หรือปล่อยให้ผู้ใช้เลือกผ่าน DatePicker
+                  // ตัวอย่าง: กำหนดค่าเริ่มต้น (คุณอาจลบส่วนนี้ถ้าต้องการให้ผู้ใช้เลือกด้วย DatePicker เท่านั้น)
                   final selected =
                       vegetableData.firstWhere((veg) => veg['name'] == value);
-                  selectedStartDate = selected['dailyPrices'].first['date'];
-                  selectedEndDate = selected['dailyPrices'].last['date'];
+                  if (selected['dailyPrices'] != null &&
+                      selected['dailyPrices'].isNotEmpty) {
+                    selectedStartDate = selected['dailyPrices'].first['date'];
+                    selectedEndDate = selected['dailyPrices'].last['date'];
+                  }
                 });
               },
               onForecastPressed: onForecastPressed,
               onClearPressed: onClearPressed,
+              onStartDateTap: _selectStartDate,
+              onEndDateTap: _selectEndDate,
             ),
             if (showGraph)
               GraphPlaceholder(
                 vegetableName: selectedVegetable!,
-                startDate: selectedStartDate!,
-                endDate: selectedEndDate!,
+                startDate: selectedStartDate ?? '',
+                endDate: selectedEndDate ?? '',
               ),
             if (showRecommendations) RecommendationsSection(),
           ],
@@ -116,6 +161,8 @@ class ForecastSection extends StatelessWidget {
   final Function(String?) onVegetableChanged;
   final VoidCallback onForecastPressed;
   final VoidCallback onClearPressed;
+  final VoidCallback onStartDateTap;
+  final VoidCallback onEndDateTap;
 
   const ForecastSection({
     required this.vegetableData,
@@ -125,6 +172,8 @@ class ForecastSection extends StatelessWidget {
     required this.onVegetableChanged,
     required this.onForecastPressed,
     required this.onClearPressed,
+    required this.onStartDateTap,
+    required this.onEndDateTap,
   });
 
   @override
@@ -173,74 +222,48 @@ class ForecastSection extends StatelessWidget {
             onChanged: onVegetableChanged,
           ),
           SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 16.0), // ระยะห่าง Row ซ้าย-ขวา
-            child: Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    decoration: InputDecoration(
-                      labelText: 'วันที่เริ่มต้นการพยากรณ์',
-                      border: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey),
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: onStartDateTap,
+                  child: AbsorbPointer(
+                    child: TextFormField(
+                      decoration: InputDecoration(
+                        labelText: 'วันที่เริ่มต้นการพยากรณ์',
+                        border: OutlineInputBorder(),
                       ),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey, width: 2.0),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey),
-                      ),
-                    ),
-                    value: selectedStartDate,
-                    items: selectedVegetable != null
-                        ? vegetableData
-                            .firstWhere((veg) =>
-                                veg['name'] == selectedVegetable)['dailyPrices']
-                            .map<DropdownMenuItem<String>>((entry) {
-                            return DropdownMenuItem<String>(
-                              value: entry['date'],
-                              child: Text(DateFormat('dd/MM/yyyy')
-                                  .format(DateTime.parse(entry['date']))),
-                            );
-                          }).toList()
-                        : [],
-                    onChanged: (value) {}, // Read-only
-                  ),
-                ),
-                SizedBox(width: 8),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    decoration: InputDecoration(
-                      labelText: 'วันที่สิ้นสุดการพยากรณ์',
-                      border: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey, width: 2.0),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey),
+                      controller: TextEditingController(
+                        text: selectedStartDate != null
+                            ? DateFormat('dd/MM/yyyy')
+                                .format(DateTime.parse(selectedStartDate!))
+                            : '',
                       ),
                     ),
-                    value: selectedEndDate,
-                    items: selectedVegetable != null
-                        ? vegetableData
-                            .firstWhere((veg) =>
-                                veg['name'] == selectedVegetable)['dailyPrices']
-                            .map<DropdownMenuItem<String>>((entry) {
-                            return DropdownMenuItem<String>(
-                              value: entry['date'],
-                              child: Text(DateFormat('dd/MM/yyyy')
-                                  .format(DateTime.parse(entry['date']))),
-                            );
-                          }).toList()
-                        : [],
-                    onChanged: (value) {}, // Read-only
                   ),
                 ),
-              ],
-            ),
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: GestureDetector(
+                  onTap: onEndDateTap,
+                  child: AbsorbPointer(
+                    child: TextFormField(
+                      decoration: InputDecoration(
+                        labelText: 'วันที่สิ้นสุดการพยากรณ์',
+                        border: OutlineInputBorder(),
+                      ),
+                      controller: TextEditingController(
+                        text: selectedEndDate != null
+                            ? DateFormat('dd/MM/yyyy')
+                                .format(DateTime.parse(selectedEndDate!))
+                            : '',
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
           SizedBox(height: 16),
           Row(
@@ -263,7 +286,7 @@ class ForecastSection extends StatelessWidget {
   }
 }
 
-// คลาสกราฟ อันนี้แหละที่เรียกจาก python
+// ส่วน GraphPlaceholder และ RecommendationsSection ยังคงเหมือนเดิม
 class GraphPlaceholder extends StatefulWidget {
   final String vegetableName;
   final String startDate;
@@ -295,16 +318,12 @@ class _GraphPlaceholderState extends State<GraphPlaceholder> {
   Future<void> fetchData() async {
     final url =
         'http://127.0.0.1:5000/api/priceforecast?vegetableName=${widget.vegetableName}&startDate=${widget.startDate}&endDate=${widget.endDate}';
-
     try {
       final response = await http.get(Uri.parse(url));
       print('URL: $url'); // ตรวจสอบ URL
       print('Status Code: ${response.statusCode}');
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
-        // ตรวจสอบว่า API ส่งกลับมาเป็นกราฟหรือข้อความธรรมดา
         if (data.containsKey('message')) {
           setState(() {
             message = data['message'];
@@ -315,7 +334,6 @@ class _GraphPlaceholderState extends State<GraphPlaceholder> {
           List<dynamic> dates = data['dates'];
           List<dynamic> prices = data['prices'];
           List<dynamic> trend = data['trend'];
-
           setState(() {
             dataPoints = List.generate(dates.length, (index) {
               return ChartData(dates[index], prices[index]);
@@ -355,9 +373,8 @@ class _GraphPlaceholderState extends State<GraphPlaceholder> {
                     primaryXAxis: CategoryAxis(),
                     title: ChartTitle(
                         text: 'กราฟพยากรณ์ราคา (${widget.vegetableName})'),
-                    legend: Legend(isVisible: true), // แสดง Legend
-                    tooltipBehavior:
-                        TooltipBehavior(enable: true), // แสดง Tooltip
+                    legend: Legend(isVisible: true),
+                    tooltipBehavior: TooltipBehavior(enable: true),
                     series: <CartesianSeries>[
                       LineSeries<ChartData, String>(
                         dataSource: dataPoints,
@@ -404,7 +421,6 @@ class RecommendationsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // ตรวจสอบความกว้างของหน้าจอ
         double screenWidth = constraints.maxWidth;
         double marginSize;
         double paddingSize;
@@ -412,23 +428,19 @@ class RecommendationsSection extends StatelessWidget {
         double fontSizeContent;
         double buttonSpacing;
 
-        // ปรับขนาดตามความกว้างของหน้าจอ
         if (screenWidth > 1024) {
-          // เดสก์ท็อป
           marginSize = 70.0;
           paddingSize = 50.0;
           fontSizeTitle = 24;
           fontSizeContent = 18;
           buttonSpacing = 16;
         } else if (screenWidth > 600) {
-          // แท็บเล็ต
           marginSize = 40.0;
           paddingSize = 30.0;
           fontSizeTitle = 22;
           fontSizeContent = 16;
           buttonSpacing = 12;
         } else {
-          // มือถือ
           marginSize = 20.0;
           paddingSize = 20.0;
           fontSizeTitle = 20;
