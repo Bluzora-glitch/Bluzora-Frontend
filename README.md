@@ -14,6 +14,7 @@ git add .
 git commit -m "แก้ปัญหาเรียกapiโหลดช้า"
 git push -f origin main
 git push origin frontend_with_api
+git pull origin frontend_edit_price_forecast
 
 A new Flutter project.
 
