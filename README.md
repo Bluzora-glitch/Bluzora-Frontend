@@ -6,7 +6,14 @@ flutter devices
 flutter pub get
 flutter run -d chrome
 
-
+git
+git status
+git branch
+git remote -v
+git add .
+git commit -m "แก้ปัญหาเรียกapiโหลดช้า"
+git push -f origin main
+git push origin frontend_with_api
 
 A new Flutter project.
 
