@@ -43,6 +43,7 @@ git pull origin frontend_edit_price_forecast
 7. การเปลี่ยนข้อมูลใหม่:
   เมื่อกดปุ่ม "พยากรณ์" จะ rebuild GraphPlaceholder ด้วย key ที่เปลี่ยนแปลงโดยอัตโนมัติ (ทำให้แสดงข้อมูลใหม่ทันทีไม่ต้องรอกดล้างข้อมูลก่อนถึงแสดงกราฟ)
 
+need to edit
 ## Getting Started
 
 This project is a starting point for a Flutter application.
