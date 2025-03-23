@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:syncfusion_flutter_charts/charts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PriceForecastPage extends StatefulWidget {
   const PriceForecastPage({Key? key}) : super(key: key);
@@ -95,6 +96,25 @@ class _PriceForecastPageState extends State<PriceForecastPage> {
     }
   }
 
+  // ฟังก์ชันดาวน์โหลด Excel (ใช้ url_launcher)
+  void downloadExcel() async {
+    if (selectedVegetable == null ||
+        selectedStartDate == null ||
+        selectedEndDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('กรุณาเลือกผักและวันที่ให้ครบถ้วน')),
+      );
+      return;
+    }
+    final url =
+        'http://127.0.0.1:8000/api/export-excel/?vegetableName=$selectedVegetable&startDate=$selectedStartDate&endDate=$selectedEndDate';
+    if (await canLaunch(url)) {
+      await launch(url);
+    } else {
+      print("ไม่สามารถเปิด URL ได้");
+    }
+  }
+
   void onForecastPressed() {
     if (selectedVegetable != null &&
         selectedStartDate != null &&
@@ -152,10 +172,19 @@ class _PriceForecastPageState extends State<PriceForecastPage> {
                 startDate: selectedStartDate ?? '',
                 endDate: selectedEndDate ?? '',
               ),
-            if (showRecommendations) RecommendationsSection(),
+            if (showRecommendations)
+              RecommendationsSection(
+                onDownloadPressed: downloadExcel,
+              ),
           ],
         ),
       ),
+      // ตัวเลือก: คุณสามารถเพิ่ม FloatingActionButton สำหรับดาวน์โหลดแทนได้เช่นกัน
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: downloadExcel,
+      //   child: Icon(Icons.download),
+      //   tooltip: 'ดาวน์โหลดข้อมูล Excel',
+      // ),
     );
   }
 }
@@ -214,7 +243,6 @@ class ForecastSection extends StatelessWidget {
             ),
           ),
           SizedBox(height: 8),
-          // Dropdown สำหรับเลือกผัก
           DropdownButtonFormField<String>(
             decoration: InputDecoration(
               labelText: 'เลือกผักที่ต้องการพยากรณ์',
@@ -230,7 +258,6 @@ class ForecastSection extends StatelessWidget {
             onChanged: onVegetableChanged,
           ),
           SizedBox(height: 16),
-          // Row สำหรับเลือกวันที่ผ่าน DatePicker
           Row(
             children: [
               Expanded(
@@ -275,7 +302,6 @@ class ForecastSection extends StatelessWidget {
             ],
           ),
           SizedBox(height: 16),
-          // ปุ่มพยากรณ์และล้างข้อมูล
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -323,7 +349,6 @@ class _GraphPlaceholderState extends State<GraphPlaceholder> {
   @override
   void initState() {
     super.initState();
-    // กำหนด tooltip behavior ด้วย custom builder สำหรับ LineSeries เท่านั้น
     _tooltipBehavior = TooltipBehavior(
       enable: true,
       builder: (dynamic data, dynamic point, dynamic series, int pointIndex,
@@ -364,13 +389,11 @@ class _GraphPlaceholderState extends State<GraphPlaceholder> {
         final jsonData = jsonDecode(response.body);
         if (jsonData.containsKey('results')) {
           final List results = jsonData['results'];
-          // แยกข้อมูล historical กับ predicted
           final List historicalResults =
               results.where((item) => item['type'] == 'historical').toList();
           final List predictedResults =
               results.where((item) => item['type'] == 'predicted').toList();
 
-          // Sort โดยใช้ DateTime.parse เพื่อเรียงลำดับ
           historicalResults.sort((a, b) =>
               DateTime.parse(a['date']).compareTo(DateTime.parse(b['date'])));
           predictedResults.sort((a, b) =>
@@ -441,17 +464,15 @@ class _GraphPlaceholderState extends State<GraphPlaceholder> {
                     legend: Legend(isVisible: true),
                     tooltipBehavior: _tooltipBehavior,
                     series: <CartesianSeries>[
-                      // RangeAreaSeries สำหรับ historical range (min - max) แบบ background
+                      // RangeAreaSeries สำหรับ historical range (background)
                       RangeAreaSeries<ChartData, DateTime>(
                         dataSource: historicalData,
                         xValueMapper: (ChartData data, _) => data.date,
                         lowValueMapper: (ChartData data, _) => data.minPrice,
                         highValueMapper: (ChartData data, _) => data.maxPrice,
-                        name: 'ราคาจริง', // ชื่อ series เดิม
+                        name: 'historical range',
                         color: Colors.blue.withOpacity(0.2),
-                        //borderColor: Colors.blue,
-                        //borderWidth: 2,
-                        enableTooltip: false, // ปิด tooltip ใน range area
+                        enableTooltip: false,
                       ),
                       // LineSeries สำหรับ historical average (ราคาจริง)
                       LineSeries<ChartData, DateTime>(
@@ -459,7 +480,7 @@ class _GraphPlaceholderState extends State<GraphPlaceholder> {
                         xValueMapper: (ChartData data, _) => data.date,
                         yValueMapper: (ChartData data, _) => data.avgPrice,
                         name: 'ราคาจริง',
-                        color: Colors.blue,
+                        color: const Color.fromARGB(255, 141, 198, 245),
                         dataLabelSettings: DataLabelSettings(isVisible: true),
                         markerSettings: MarkerSettings(
                             isVisible: true, width: 8, height: 8),
@@ -530,6 +551,10 @@ class ChartData {
 }
 
 class RecommendationsSection extends StatelessWidget {
+  final VoidCallback onDownloadPressed;
+  const RecommendationsSection({Key? key, required this.onDownloadPressed})
+      : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -601,9 +626,7 @@ class RecommendationsSection extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   ElevatedButton(
-                    onPressed: () {
-                      // Logic ดาวน์โหลดการพยากรณ์
-                    },
+                    onPressed: onDownloadPressed,
                     child: Text('ดาวน์โหลดการพยากรณ์'),
                   ),
                   SizedBox(width: buttonSpacing),
