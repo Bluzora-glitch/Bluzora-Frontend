@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:http/http.dart' as http; // ใช้ http แทน rootBundle
 import 'quarterly_avg.dart';
 
 class VegetableCardScreen extends StatefulWidget {
-  const VegetableCardScreen({Key? key}) : super(key: key);
+  const VegetableCardScreen({super.key});
 
   @override
   _VegetableCardScreenState createState() => _VegetableCardScreenState();
@@ -20,12 +20,38 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
   }
 
   Future<void> _loadVegetables() async {
-    final String response =
-        await rootBundle.loadString('assets/vegetables.json');
-    final List<dynamic> data = json.decode(response);
-    setState(() {
-      vegetables = List<Map<String, dynamic>>.from(data);
-    });
+    // เปลี่ยน URL ให้ตรงกับ Django API endpoint ที่ส่งข้อมูลผัก
+    const url = 'http://127.0.0.1:8000/api/crop-info-list/';
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body);
+        List<Map<String, dynamic>> resultList = [];
+        if (jsonData == null) {
+          resultList = [];
+        } else if (jsonData is List) {
+          resultList = List<Map<String, dynamic>>.from(jsonData);
+        } else if (jsonData is Map && jsonData.containsKey("results")) {
+          resultList = List<Map<String, dynamic>>.from(jsonData["results"]);
+        } else {
+          resultList = [];
+        }
+        setState(() {
+          vegetables = resultList;
+        });
+        print("Vegetable data loaded from API: $vegetables");
+      } else {
+        print('Error loading vegetables: ${response.statusCode}');
+        setState(() {
+          vegetables = [];
+        });
+      }
+    } catch (e) {
+      print('Exception loading vegetables: $e');
+      setState(() {
+        vegetables = [];
+      });
+    }
   }
 
   @override
@@ -33,7 +59,7 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         double screenWidth = constraints.maxWidth;
-        bool isMobile = screenWidth < 600; // ตรวจสอบว่าหน้าจอเล็กกว่าหรือไม่
+        bool isMobile = screenWidth < 600;
 
         return vegetables.isEmpty
             ? const Center(child: CircularProgressIndicator())
@@ -41,7 +67,7 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
                 padding: const EdgeInsets.all(16.0),
                 child: isMobile
                     ? _buildMobileListView()
-                    : _buildDesktopScrollableRow(), // ใช้แบบเลื่อนแนวนอนแทน GridView
+                    : _buildDesktopScrollableRow(),
               );
       },
     );
@@ -50,7 +76,7 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
   /// สำหรับเดสก์ท็อป: แสดงเป็นแนวนอนเลื่อน
   Widget _buildDesktopScrollableRow() {
     return SingleChildScrollView(
-      scrollDirection: Axis.horizontal, // ให้เลื่อนแนวนอนได้
+      scrollDirection: Axis.horizontal,
       child: Row(
         children: vegetables.map((vegetable) {
           return Padding(
@@ -66,7 +92,7 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
   Widget _buildMobileListView() {
     return ListView.builder(
       shrinkWrap: true,
-      physics: const ClampingScrollPhysics(), // ป้องกันการล็อค Scroll
+      physics: const ClampingScrollPhysics(),
       itemCount: vegetables.length,
       itemBuilder: (context, index) {
         return _buildVegetableCard(vegetables[index]);
@@ -74,7 +100,7 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
     );
   }
 
-  /// วิดเจ็ตสร้างการ์ดของแต่ละรายการ
+  /// สร้างการ์ดสำหรับแต่ละรายการผัก
   Widget _buildVegetableCard(Map<String, dynamic> vegetable) {
     double screenWidth = MediaQuery.of(context).size.width;
 
@@ -97,12 +123,11 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
             ? 110 // แท็บเล็ต
             : 70; // มือถือ
 
-    // ✅ ปรับความห่างของขอบบนและล่าง
     double verticalMargin = screenWidth > 1024
-        ? 8.0 // เดสก์ท็อป
+        ? 8.0
         : screenWidth > 600
-            ? 6.0 // แท็บเล็ต
-            : 4.0; // มือถือ
+            ? 6.0
+            : 4.0;
 
     return GestureDetector(
       onTap: () {
@@ -114,8 +139,7 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
         );
       },
       child: Card(
-        margin: EdgeInsets.symmetric(
-            vertical: verticalMargin), // ✅ ใช้ตัวแปรที่ปรับขนาด
+        margin: EdgeInsets.symmetric(vertical: verticalMargin),
         color: Colors.white,
         child: SizedBox(
           width: cardWidth,
@@ -125,30 +149,30 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Image.asset(
-                  vegetable['image']!,
+                // แสดงรูปจาก asset โดยคาดหวังว่าค่า key 'image' มี path ของ asset รูปภาพ
+                Image.network(
+                  vegetable['image'] ??
+                      'http://127.0.0.1:8000/assets/default.jpg',
                   height: imageHeight,
                   fit: BoxFit.cover,
                   width: double.infinity,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  vegetable["name"],
+                  vegetable["name"] ?? "ไม่ระบุชื่อ",
                   style: TextStyle(
-                    fontSize: screenWidth > 600
-                        ? 18.0
-                        : 16.0, // ลดขนาดฟอนต์ลงในมือถือ
+                    fontSize: screenWidth > 600 ? 18.0 : 16.0,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 6.0),
                 Text(
-                  vegetable["price"],
+                  vegetable["price"]?.toString() ?? "-",
                   style: TextStyle(fontSize: screenWidth > 600 ? 16.0 : 14.0),
                 ),
                 const SizedBox(height: 6.0),
                 Text(
-                  vegetable["change"],
+                  vegetable["change"]?.toString() ?? "-",
                   style: TextStyle(
                     fontSize: screenWidth > 600 ? 14.0 : 12.0,
                     color: Colors.green,

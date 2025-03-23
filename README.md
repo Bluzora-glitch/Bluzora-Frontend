@@ -42,6 +42,22 @@ git pull origin frontend_edit_price_forecast
   Tooltip สำหรับ RangeAreaSeries ถูกปิดด้วย enableTooltip: false
 7. การเปลี่ยนข้อมูลใหม่:
   เมื่อกดปุ่ม "พยากรณ์" จะ rebuild GraphPlaceholder ด้วย key ที่เปลี่ยนแปลงโดยอัตโนมัติ (ทำให้แสดงข้อมูลใหม่ทันทีไม่ต้องรอกดล้างข้อมูลก่อนถึงแสดงกราฟ)
+  
+## Section แสดงรูปราคาเฉลี่ยรายไตรมาส
+1. เปลี่ยนจากเดิม asset/json เป็นเรียกจาก api
+2. แก้โครงสร้าง backend ทำ api view ใหม่ ให้เป็น 
+{
+    "name": "ต้นหอม คละ (บาท/กก.)",
+    "unit": "กิโลกรัม",
+    "price": "฿60 - ฿65 / กิโลกรัม",
+    "change": "↑ 0.00%",
+    "image": "http://127.0.0.1:8000/crop_images/ตนหอม.jpg",
+    "status": "up"
+  },
+3. เขียนฟังก์คำนวณค่า change คิด % และเพิ่ม status up/down
+4. แก้ให้ดึงค่า min-max price ให้ตรงรูปแบบ
+5. แก้ปัญหา encoding ต้องส่งรูปผ่าน url ได้ ต้องแสดงค่าเป็นภาษาไทย ไม่ใช่ภาษาต่างดาว
+6. แก้ conflict อ่านรูปไม่ได้ แก้จาก asset เป็น network
 
 need to edit
 ## Getting Started
