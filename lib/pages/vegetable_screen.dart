@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:http/http.dart' as http;
 import 'quarterly_avg.dart';
 
 class VegetableScreen extends StatefulWidget {
@@ -22,27 +22,52 @@ class _VegetableScreenState extends State<VegetableScreen> {
     _loadVegetables();
   }
 
+  // ดึงข้อมูลผักจาก Django API endpoint
   Future<void> _loadVegetables() async {
-    final String response =
-        await rootBundle.loadString('assets/vegetables.json');
-    final List<dynamic> data = jsonDecode(response);
-    setState(() {
-      vegetables = List<Map<String, dynamic>>.from(data);
-      filteredVegetables = vegetables;
-    });
+    final url = 'http://127.0.0.1:8000/api/crop-info-list/';
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body);
+        List<Map<String, dynamic>> resultList = [];
+        if (jsonData == null) {
+          resultList = [];
+        } else if (jsonData is List) {
+          resultList = List<Map<String, dynamic>>.from(jsonData);
+        } else if (jsonData is Map && jsonData.containsKey("results")) {
+          resultList = List<Map<String, dynamic>>.from(jsonData["results"]);
+        } else {
+          resultList = [];
+        }
+        setState(() {
+          vegetables = resultList;
+          filteredVegetables = vegetables;
+        });
+        print("Vegetable data loaded: $vegetables");
+      } else {
+        print('Error loading vegetables: ${response.statusCode}');
+        setState(() {
+          vegetables = [];
+          filteredVegetables = [];
+        });
+      }
+    } catch (e) {
+      print('Exception loading vegetables: $e');
+      setState(() {
+        vegetables = [];
+        filteredVegetables = [];
+      });
+    }
   }
 
   void _filterVegetables() {
     String query = searchController.text.toLowerCase();
-
     setState(() {
       filteredVegetables = vegetables.where((veg) {
-        final name = veg['name'].toLowerCase();
-        final status = veg['status'];
-
+        final name = (veg['name'] ?? '').toLowerCase();
+        final status = veg['status'] ?? '';
         bool matchesQuery = name.contains(query);
         bool matchesStatus = selectedStatus == null || status == selectedStatus;
-
         return matchesQuery && matchesStatus;
       }).toList();
     });
@@ -61,7 +86,7 @@ class _VegetableScreenState extends State<VegetableScreen> {
               ? 16.0
               : isTablet
                   ? 30.0
-                  : 50.20,
+                  : 50.0,
           vertical: 16.0,
         ),
         child: Column(
@@ -88,8 +113,6 @@ class _VegetableScreenState extends State<VegetableScreen> {
                   ),
                 ),
                 const SizedBox(width: 10),
-
-                // Dropdown สำหรับเลือกสถานะราคาขึ้น/ลง
                 Expanded(
                   flex: isMobile ? 2 : 1,
                   child: DropdownButtonFormField<String>(
@@ -126,11 +149,12 @@ class _VegetableScreenState extends State<VegetableScreen> {
                   Container(
                     color: Colors.grey[200],
                     padding: EdgeInsets.symmetric(
-                        horizontal: isMobile
-                            ? 10
-                            : isTablet
-                                ? 20
-                                : 30),
+                      horizontal: isMobile
+                          ? 10
+                          : isTablet
+                              ? 20
+                              : 30,
+                    ),
                     child: Row(
                       children: [
                         Expanded(
@@ -193,19 +217,16 @@ class _VegetableScreenState extends State<VegetableScreen> {
                   const SizedBox(height: 10),
                   Expanded(
                     child: ListView.builder(
-                      padding: EdgeInsets.zero, // ✅ เอา Padding ออก
+                      padding: EdgeInsets.zero,
                       itemCount: filteredVegetables.length,
                       itemBuilder: (context, index) {
                         final vegetable = filteredVegetables[index];
                         return Padding(
-                          padding: EdgeInsets.symmetric(
-                            vertical: 5,
-                            horizontal:
-                                0, // ✅ ลด Padding ซ้ายขวาให้เท่ากับ Header
-                          ),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 5, horizontal: 0),
                           child: Container(
                             padding: EdgeInsets.symmetric(
-                              horizontal: isMobile ? 10 : 20, // ✅ ปรับให้เล็กลง
+                              horizontal: isMobile ? 10 : 20,
                               vertical: isMobile ? 5 : 10,
                             ),
                             decoration: BoxDecoration(
@@ -218,7 +239,7 @@ class _VegetableScreenState extends State<VegetableScreen> {
                                 Expanded(
                                   flex: 2,
                                   child: Text(
-                                    vegetable['name'],
+                                    vegetable['name'] ?? '',
                                     style: TextStyle(
                                       fontSize: isMobile ? 14 : 16,
                                     ),
@@ -227,7 +248,7 @@ class _VegetableScreenState extends State<VegetableScreen> {
                                 Expanded(
                                   flex: 2,
                                   child: Text(
-                                    vegetable['price'],
+                                    vegetable['price'] ?? '',
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontSize: isMobile ? 14 : 16,
@@ -237,7 +258,7 @@ class _VegetableScreenState extends State<VegetableScreen> {
                                 Expanded(
                                   flex: 1,
                                   child: Text(
-                                    vegetable['unit'],
+                                    vegetable['unit'] ?? '',
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       fontSize: isMobile ? 14 : 16,
@@ -247,7 +268,7 @@ class _VegetableScreenState extends State<VegetableScreen> {
                                 Expanded(
                                   flex: 1,
                                   child: Text(
-                                    '"${vegetable['dailyPrices'].last['price']}" บาท/หน่วย',
+                                    vegetable['avg_price'] ?? '',
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       color: vegetable['status'] == 'up'
@@ -260,21 +281,16 @@ class _VegetableScreenState extends State<VegetableScreen> {
                                 Expanded(
                                   flex: 1,
                                   child: SizedBox(
-                                    height:
-                                        isMobile ? 30 : 40, // ลดความสูงบนมือถือ
-                                    width: isMobile
-                                        ? 80
-                                        : 100, // ลดความกว้างบนมือถือ
+                                    height: isMobile ? 30 : 40,
+                                    width: isMobile ? 80 : 100,
                                     child: ElevatedButton(
                                       style: ElevatedButton.styleFrom(
                                         padding: EdgeInsets.symmetric(
-                                          vertical:
-                                              isMobile ? 4 : 8, // ลด Padding
+                                          vertical: isMobile ? 4 : 8,
                                           horizontal: isMobile ? 6 : 12,
                                         ),
                                         textStyle: TextStyle(
-                                          fontSize:
-                                              isMobile ? 12 : 14, // ลดขนาดฟอนต์
+                                          fontSize: isMobile ? 12 : 14,
                                         ),
                                       ),
                                       onPressed: () {
