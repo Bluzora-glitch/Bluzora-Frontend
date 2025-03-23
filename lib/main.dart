@@ -7,6 +7,7 @@ import 'widgets/navbar.dart';
 import 'widgets/footer.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 Future<List<dynamic>> loadVegetableData() async {
   final String response = await rootBundle.loadString('assets/vegetables.json');
@@ -25,7 +26,9 @@ class BluzoraApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Bluzora',
-      theme: ThemeData(primarySwatch: Colors.green),
+      theme: ThemeData(
+        primarySwatch: Colors.green,
+      ),
       initialRoute: '/', // ตั้งค่าเส้นทางเริ่มต้น
       onGenerateRoute: (settings) {
         switch (settings.name) {
@@ -72,11 +75,10 @@ class MainLayout extends StatelessWidget {
         child: Navbar(),
       ),
       body: Column(
-        mainAxisAlignment:
-            MainAxisAlignment.spaceBetween, // จัดให้ footer อยู่ล่างสุด
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(child: child), // เนื้อหาหลักอยู่ในส่วนนี้
-          const Footer(), // Footer จะอยู่ล่างสุดของหน้า
+          Expanded(child: child),
+          const Footer(),
         ],
       ),
     );
