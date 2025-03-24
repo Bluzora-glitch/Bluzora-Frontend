@@ -294,12 +294,18 @@ class _VegetableScreenState extends State<VegetableScreen> {
                                         ),
                                       ),
                                       onPressed: () {
+                                        // สร้าง map ใหม่เฉพาะข้อมูลที่จำเป็น
+                                        final vegetableData = {
+                                          "name": vegetable['name'],
+                                          "image": vegetable['image'],
+                                          "unit": vegetable['unit'],
+                                        };
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
                                             builder: (context) =>
                                                 QuarterlyAvgPage(
-                                                    vegetable: vegetable),
+                                                    vegetable: vegetableData),
                                           ),
                                         );
                                       },
