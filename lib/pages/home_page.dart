@@ -9,6 +9,9 @@ import 'component_quarterly_prices.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({Key? key}) : super(key: key);
+
+  // ประกาศ GlobalKey สำหรับ New Vegetables Section (ใช้แบบ static ภายใน HomePage)
+  static final GlobalKey _newVegetablesKey = GlobalKey();
   static final GlobalKey _priceForecastKey = GlobalKey();
 
   @override
@@ -19,10 +22,9 @@ class HomePage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-// Header Section
+            // Header Section
             Stack(
               children: [
-                // CarouselHeader(), // <-- เรียกใช้ Widget ที่แยกออกไป
                 Image.asset(
                   'assets/background.jpg',
                   height: MediaQuery.of(context).size.height * 0.6,
@@ -38,7 +40,7 @@ class HomePage extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-// ข้อความด้านซ้าย
+                      // ข้อความด้านซ้าย
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -83,26 +85,23 @@ class HomePage extends StatelessWidget {
                                   onPressed: () {
                                     Scrollable.ensureVisible(
                                       _priceForecastKey.currentContext!,
-                                      duration: const Duration(
-                                          milliseconds:
-                                              500), // ✅ ความเร็วในการเลื่อน
-                                      curve: Curves
-                                          .easeInOut, // ✅ ความนุ่มนวลของการเลื่อน
+                                      duration:
+                                          const Duration(milliseconds: 500),
+                                      curve: Curves.easeInOut,
                                     );
                                   },
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white.withOpacity(
-                                        0.2), // ✅ พื้นหลังโปร่งใส 20%
+                                    backgroundColor:
+                                        Colors.white.withOpacity(0.2),
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 24,
                                       vertical: 12,
                                     ),
                                     side: const BorderSide(
-                                      color: Colors.white, // ✅ กรอบสีขาว
-                                      width: 1.5, // ✅ ความหนาของกรอบ
+                                      color: Colors.white,
+                                      width: 1.5,
                                     ),
-                                    elevation:
-                                        0, // ✅ ไม่มีเงา (ดูโปร่งใสมากขึ้น)
+                                    elevation: 0,
                                   ),
                                   child: const Text(
                                     'รายละเอียดเพิ่มเติม',
@@ -115,29 +114,6 @@ class HomePage extends StatelessWidget {
                         ),
                       ),
                       SizedBox(width: 50),
-// Placeholder สำหรับวิดีโอ
-                      // Container(
-                      //   width: 400,
-                      //   height: 300,
-                      //   decoration: BoxDecoration(
-                      //     color: Colors.white.withOpacity(0.9),
-                      //     borderRadius: BorderRadius.circular(12),
-                      //     boxShadow: [
-                      //       BoxShadow(
-                      //         color: Colors.black26,
-                      //         blurRadius: 10,
-                      //         offset: Offset(0, 4),
-                      //       ),
-                      //     ],
-                      //   ),
-                      //   child: Center(
-                      //     child: Icon(
-                      //       Icons.play_circle_fill,
-                      //       size: 100,
-                      //       color: Colors.grey,
-                      //     ),
-                      //   ),
-                      // ),
                     ],
                   ),
                 ),
@@ -145,11 +121,11 @@ class HomePage extends StatelessWidget {
             ),
             SizedBox(height: 16),
 
-// Content Section
+            // Content Section
 
-// Price Forecast Section
+            // Price Forecast Section
             Center(
-              key: _priceForecastKey, // ✅ ใส่ GlobalKey ตรงนี้
+              key: _priceForecastKey,
               child: InkWell(
                 onTap: () {
                   Navigator.pushNamed(context, '/price_forecast');
@@ -175,7 +151,7 @@ class HomePage extends StatelessWidget {
               ),
             ),
 
-// Comparison Section
+            // Comparison Section
             Center(
               child: InkWell(
                 onTap: () {
@@ -185,10 +161,10 @@ class HomePage extends StatelessWidget {
                 child: Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: MediaQuery.of(context).size.width > 1024
-                        ? 150.0 // เดสก์ท็อป
+                        ? 150.0
                         : MediaQuery.of(context).size.width > 600
-                            ? 80.0 // แท็บเล็ต
-                            : 16.0, // มือถือ
+                            ? 80.0
+                            : 16.0,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,25 +178,29 @@ class HomePage extends StatelessWidget {
               ),
             ),
 
-// Price Monitoring Section
+            // Price Monitoring Section (แก้ไข: ไม่ navigate แต่เลื่อนไปที่ New Vegetables)
             Center(
               child: InkWell(
                 onTap: () {
-                  Navigator.pushNamed(context, '/quarterly_avg');
+                  Scrollable.ensureVisible(
+                    _newVegetablesKey.currentContext!,
+                    duration: const Duration(milliseconds: 500),
+                    curve: Curves.easeInOut,
+                  );
                 },
                 splashColor: Colors.green.withOpacity(0.3),
                 child: Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: MediaQuery.of(context).size.width > 1024
-                        ? 150.0 // เดสก์ท็อป
+                        ? 150.0
                         : MediaQuery.of(context).size.width > 600
-                            ? 80.0 // แท็บเล็ต
-                            : 16.0, // มือถือ
+                            ? 80.0
+                            : 16.0,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SectionHeader(title: 'ราคาเฉลี่ยรายไตรมาส'),
+                      const SectionHeader(title: 'ข้อมูลราคาย้อนหลัง'),
                       const QuarterlyPricesComponent(),
                       const SizedBox(height: 16),
                     ],
@@ -229,31 +209,32 @@ class HomePage extends StatelessWidget {
               ),
             ),
 
-// ผักใหม่ Section
+            // New Vegetables Section
             Center(
+              key: _newVegetablesKey, // ใช้ GlobalKey ที่ประกาศใน HomePage
               child: Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: MediaQuery.of(context).size.width > 1024
-                      ? 80.0 // เดสก์ท็อป
+                      ? 80.0
                       : MediaQuery.of(context).size.width > 600
-                          ? 40.0 // แท็บเล็ต
-                          : 8.0, // มือถือ
+                          ? 40.0
+                          : 8.0,
                   vertical: 10.0,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'ราคาเฉลี่ยรายไตรมาส',
+                      'ข้อมูลราคาย้อนหลัง',
                       style:
                           TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
                     ),
                     SizedBox(
                       height: MediaQuery.of(context).size.width > 1024
-                          ? 320 // เดสก์ท็อป
+                          ? 320
                           : MediaQuery.of(context).size.width > 600
-                              ? 300 // แท็บเล็ต
-                              : 280, // มือถือ
+                              ? 300
+                              : 280,
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
@@ -269,16 +250,15 @@ class HomePage extends StatelessWidget {
               ),
             ),
 
-// ตารางผัก Section
             // ตารางผัก Section
             Center(
               child: Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: MediaQuery.of(context).size.width > 1024
-                      ? 150.0 // เดสก์ท็อป
+                      ? 150.0
                       : MediaQuery.of(context).size.width > 600
-                          ? 80.0 // แท็บเล็ต
-                          : 16.0, // มือถือ
+                          ? 80.0
+                          : 16.0,
                   vertical: 5.0,
                 ),
                 child: Column(
@@ -287,10 +267,10 @@ class HomePage extends StatelessWidget {
                     Container(
                       height: MediaQuery.of(context).size.height *
                           (MediaQuery.of(context).size.width > 1024
-                              ? 0.8 // เดสก์ท็อป
+                              ? 0.8
                               : MediaQuery.of(context).size.width > 600
-                                  ? 0.7 // แท็บเล็ต
-                                  : 0.6), // มือถือ
+                                  ? 0.7
+                                  : 0.6),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
@@ -303,7 +283,7 @@ class HomePage extends StatelessWidget {
                           ),
                         ],
                       ),
-                      child: const VegetableScreen(), // ใส่ VegetableScreen
+                      child: const VegetableScreen(),
                     ),
                     const SizedBox(height: 16),
                   ],
@@ -317,67 +297,9 @@ class HomePage extends StatelessWidget {
   }
 }
 
-@override
-Widget build(BuildContext context) {
-  return Container(
-    padding: const EdgeInsets.all(50.0),
-    decoration: BoxDecoration(
-      color: Colors.white.withOpacity(0.9),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          flex: 2,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Opacity(
-              opacity: 0.75,
-              child: Image.asset(
-                'assets/quarterly_prices.jpg',
-                height: 200,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          flex: 3,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text(
-                'ติดตามราคาเฉลี่ยรายไตรมาสแบบครบจบในที่เดียว',
-                style: TextStyle(
-                  fontSize: 20, // ทำให้ตัวใหญ่
-                  fontWeight: FontWeight.bold, // ทำให้ตัวหนา
-                ),
-              ),
-              Text(
-                'อัปเดตข้อมูลราคาเฉลี่ยผลผลิตรายไตรมาส เพื่อช่วยคุณวางแผนธุรกิจและตัดสินใจได้อย่างมั่นใจ ด้วยข้อมูลเชิงลึกที่แม่นยำและเชื่อถือได้',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.normal,
-                  color: Colors.black87,
-                ),
-              ),
-              FeatureList(
-                features: [
-                  'วิเคราะห์ราคาผลผลิตรายไตรมาส',
-                  'แนวโน้มตลาดที่ชัดเจน',
-                  'ข้อมูลเพื่อการวางแผนระยะยาว',
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
-}
+// หมดการประกาศ GlobalKey ที่ซ้ำออกแล้ว (ใช้ _newVegetablesKey ที่ประกาศใน HomePage เท่านั้น)
 
+// ตรวจสอบให้แน่ใจว่าไม่มีการประกาศ SectionHeader และ FeatureList ซ้ำในไฟล์นี้
 class SectionHeader extends StatelessWidget {
   final String title;
   const SectionHeader({required this.title});

@@ -52,7 +52,7 @@ class _NavbarState extends State<Navbar> {
                 context, 'Price Forecast', '/price_forecast', textSize),
             if (screenWidth > 600)
               _buildNavItem(
-                  context, 'Quarterly Average', '/quarterly_avg', textSize),
+                  context, 'Historical Price', '/quarterly_avg', textSize),
 
             // ✅ จัดให้ Comparison อยู่ใกล้ช่องค้นหามากขึ้น
             if (screenWidth > 600)

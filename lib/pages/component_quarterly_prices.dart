@@ -63,7 +63,7 @@ class QuarterlyPricesComponent extends StatelessWidget {
           isMobile ? CrossAxisAlignment.center : CrossAxisAlignment.start,
       children: const [
         Text(
-          'ติดตามราคาเฉลี่ยรายไตรมาสแบบครบจบในที่เดียว',
+          'ติดตามข้อมูลราคาย้อนหลังของพืชผักได้อย่างสะดวก',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -71,7 +71,7 @@ class QuarterlyPricesComponent extends StatelessWidget {
         ),
         SizedBox(height: 8),
         Text(
-          'อัปเดตข้อมูลราคาเฉลี่ยผลผลิตรายไตรมาส เพื่อช่วยคุณวางแผนธุรกิจและตัดสินใจได้อย่างมั่นใจ ด้วยข้อมูลเชิงลึกที่แม่นยำและเชื่อถือได้',
+          'เข้าถึงข้อมูลราคาพืชผักทางการเกษตรย้อนหลัง ช่วยให้คุณวิเคราะห์ความเปลี่ยนแปลงของตลาด มองเห็นแนวโน้มในระยะยาว และวางแผนการผลิตหรือการจำหน่ายได้อย่างมั่นใจ',
           style: TextStyle(
             fontSize: 16,
             color: Colors.black87,
@@ -80,9 +80,9 @@ class QuarterlyPricesComponent extends StatelessWidget {
         SizedBox(height: 16),
         FeatureList(
           features: [
-            'วิเคราะห์ราคาผลผลิตรายไตรมาส',
-            'แนวโน้มตลาดที่ชัดเจน',
-            'ข้อมูลเพื่อการวางแผนระยะยาว',
+            'เก็บข้อมูลราคาผักย้อนหลังอย่างละเอียด',
+            'วิเคราะห์แนวโน้มจากข้อมูลในอดีต',
+            'ใช้ข้อมูลจริงประกอบการวางแผนเกษตรกรรม',
           ],
         ),
       ],
