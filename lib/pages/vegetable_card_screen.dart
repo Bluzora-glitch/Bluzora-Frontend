@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
-import 'package:http/http.dart' as http; // ใช้ http แทน rootBundle
+import 'package:http/http.dart' as http;
 import 'quarterly_avg.dart';
 
 class VegetableCardScreen extends StatefulWidget {
@@ -12,6 +12,7 @@ class VegetableCardScreen extends StatefulWidget {
 
 class _VegetableCardScreenState extends State<VegetableCardScreen> {
   List<Map<String, dynamic>> vegetables = [];
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -19,8 +20,13 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
     _loadVegetables();
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadVegetables() async {
-    // เปลี่ยน URL ให้ตรงกับ Django API endpoint ที่ส่งข้อมูลผัก
     const url = 'http://127.0.0.1:8000/api/crop-info-list/';
     try {
       final response = await http.get(Uri.parse(url));
@@ -65,25 +71,77 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
             ? const Center(child: CircularProgressIndicator())
             : Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: isMobile
-                    ? _buildMobileListView()
-                    : _buildDesktopScrollableRow(),
+                child: isMobile ? _buildMobileListView() : _buildDesktopView(),
               );
       },
     );
   }
 
-  /// สำหรับเดสก์ท็อป: แสดงเป็นแนวนอนเลื่อน
-  Widget _buildDesktopScrollableRow() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: vegetables.map((vegetable) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: _buildVegetableCard(vegetable),
-          );
-        }).toList(),
+  Widget _buildDesktopView() {
+    // กำหนดความกว้างเป็น 80% ของหน้าจอเพื่อให้เกิด overflow แน่นอน
+    double containerWidth = MediaQuery.of(context).size.width * 0.8;
+    double containerHeight = 300; // ความสูงของส่วนการ์ด
+
+    return Center(
+      child: SizedBox(
+        width: containerWidth,
+        height: containerHeight,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // แถวของการ์ดผัก
+            SingleChildScrollView(
+              controller: _scrollController,
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: vegetables.map((vegetable) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: _buildVegetableCard(vegetable),
+                  );
+                }).toList(),
+              ),
+            ),
+            // ปุ่มเลื่อนซ้าย
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: _buildCircleButton(
+                  icon: Icons.arrow_back_ios,
+                  onTap: () {
+                    _scrollController.animateTo(
+                      _scrollController.offset - 600,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
+                  },
+                ),
+              ),
+            ),
+            // ปุ่มเลื่อนขวา
+            Positioned(
+              right: 0,
+              top: 0,
+              bottom: 0,
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: _buildCircleButton(
+                  icon: Icons.arrow_forward_ios,
+                  onTap: () {
+                    _scrollController.animateTo(
+                      _scrollController.offset + 600,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -97,6 +155,26 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
       itemBuilder: (context, index) {
         return _buildVegetableCard(vegetables[index]);
       },
+    );
+  }
+
+  /// ปุ่มกลมๆ สำหรับเลื่อนซ้าย-ขวา
+  Widget _buildCircleButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8.0),
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withOpacity(0.7), // ปรับความเข้มให้เห็นชัดขึ้น
+      ),
+      child: IconButton(
+        icon: Icon(icon, size: 20),
+        onPressed: onTap,
+      ),
     );
   }
 
@@ -149,7 +227,6 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // แสดงรูปจาก asset โดยคาดหวังว่าค่า key 'image' มี path ของ asset รูปภาพ
                 Image.network(
                   vegetable['image'] ??
                       'http://127.0.0.1:8000/assets/default.jpg',
@@ -175,7 +252,10 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
                   vegetable["change"]?.toString() ?? "-",
                   style: TextStyle(
                     fontSize: screenWidth > 600 ? 14.0 : 12.0,
-                    color: Colors.green,
+                    color:
+                        (vegetable["status"]?.toString().toLowerCase() == "up")
+                            ? Colors.green
+                            : Colors.red,
                   ),
                 ),
               ],

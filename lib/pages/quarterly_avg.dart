@@ -551,8 +551,8 @@ class PriceTableNew extends StatelessWidget {
         const SizedBox(height: 10),
         // แสดง Summary ด้านบนของตาราง (ข้อความนี้ใช้ตัวปกติ)
         Text(
-          "ราคาเฉลี่ยรวม: ${summary['overall_average']}",
-          style: const TextStyle(fontSize: 16),
+          "ราคาเฉลี่ยรวม: ${double.tryParse(summary['overall_average'].toString())?.toStringAsFixed(2) ?? '-'}",
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         Text(
           "ราคารวมสูงสุด: ${summary['overall_max']}",
