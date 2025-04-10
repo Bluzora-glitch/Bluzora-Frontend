@@ -228,11 +228,19 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Image.network(
-                  vegetable['image'] ??
-                      'http://127.0.0.1:8000/assets/default.jpg',
+                  vegetable['image'] ?? '',
                   height: imageHeight,
                   fit: BoxFit.cover,
                   width: double.infinity,
+                  errorBuilder: (context, error, stackTrace) {
+                    // เมื่อไม่สามารถโหลดรูปจาก URL ได้ ให้แสดงรูป default จาก assets
+                    return Image.asset(
+                      'assets/vegetables.png',
+                      height: imageHeight,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                    );
+                  },
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -241,6 +249,8 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
                     fontSize: screenWidth > 600 ? 18.0 : 16.0,
                     fontWeight: FontWeight.bold,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 6.0),
                 Text(

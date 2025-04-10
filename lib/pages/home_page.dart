@@ -5,14 +5,36 @@ import 'component_comparison.dart';
 import 'component_price_forecast.dart';
 import 'component_quarterly_prices.dart';
 
-// import 'carousel_header.dart';
+class HomePage extends StatefulWidget {
+  final bool scrollToHistoricalPrice;
+  const HomePage({Key? key, this.scrollToHistoricalPrice = false})
+      : super(key: key);
 
-class HomePage extends StatelessWidget {
-  const HomePage({Key? key}) : super(key: key);
+  @override
+  _HomePageState createState() => _HomePageState();
+}
 
-  // ประกาศ GlobalKey สำหรับ New Vegetables Section (ใช้แบบ static ภายใน HomePage)
-  static final GlobalKey _newVegetablesKey = GlobalKey();
-  static final GlobalKey _priceForecastKey = GlobalKey();
+class _HomePageState extends State<HomePage> {
+  // สร้าง GlobalKey สำหรับส่วน Historical Price และ Price Forecast
+  final GlobalKey _newVegetablesKey = GlobalKey();
+  final GlobalKey _priceForecastKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.scrollToHistoricalPrice) {
+      // รอจน widget ถูกวาดเสร็จแล้ว จากนั้นเลื่อนไปที่ส่วน Historical Price
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_newVegetablesKey.currentContext != null) {
+          Scrollable.ensureVisible(
+            _newVegetablesKey.currentContext!,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOut,
+          );
+        }
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,12 +105,15 @@ class HomePage extends StatelessWidget {
                                 SizedBox(width: 16),
                                 ElevatedButton(
                                   onPressed: () {
-                                    Scrollable.ensureVisible(
-                                      _priceForecastKey.currentContext!,
-                                      duration:
-                                          const Duration(milliseconds: 500),
-                                      curve: Curves.easeInOut,
-                                    );
+                                    if (_priceForecastKey.currentContext !=
+                                        null) {
+                                      Scrollable.ensureVisible(
+                                        _priceForecastKey.currentContext!,
+                                        duration:
+                                            const Duration(milliseconds: 500),
+                                        curve: Curves.easeInOut,
+                                      );
+                                    }
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor:
@@ -178,15 +203,17 @@ class HomePage extends StatelessWidget {
               ),
             ),
 
-            // Price Monitoring Section (แก้ไข: ไม่ navigate แต่เลื่อนไปที่ New Vegetables)
+            // Price Monitoring Section (เลื่อนไปที่ส่วน Historical Price)
             Center(
               child: InkWell(
                 onTap: () {
-                  Scrollable.ensureVisible(
-                    _newVegetablesKey.currentContext!,
-                    duration: const Duration(milliseconds: 500),
-                    curve: Curves.easeInOut,
-                  );
+                  if (_newVegetablesKey.currentContext != null) {
+                    Scrollable.ensureVisible(
+                      _newVegetablesKey.currentContext!,
+                      duration: const Duration(milliseconds: 500),
+                      curve: Curves.easeInOut,
+                    );
+                  }
                 },
                 splashColor: Colors.green.withOpacity(0.3),
                 child: Padding(
@@ -209,9 +236,9 @@ class HomePage extends StatelessWidget {
               ),
             ),
 
-            // New Vegetables Section
+            // Historical Price Section (New Vegetables Section)
             Center(
-              key: _newVegetablesKey, // ใช้ GlobalKey ที่ประกาศใน HomePage
+              key: _newVegetablesKey,
               child: Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: MediaQuery.of(context).size.width > 1024
@@ -297,9 +324,6 @@ class HomePage extends StatelessWidget {
   }
 }
 
-// หมดการประกาศ GlobalKey ที่ซ้ำออกแล้ว (ใช้ _newVegetablesKey ที่ประกาศใน HomePage เท่านั้น)
-
-// ตรวจสอบให้แน่ใจว่าไม่มีการประกาศ SectionHeader และ FeatureList ซ้ำในไฟล์นี้
 class SectionHeader extends StatelessWidget {
   final String title;
   const SectionHeader({required this.title});

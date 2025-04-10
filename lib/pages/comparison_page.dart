@@ -134,7 +134,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
                 spacing: 16,
                 runSpacing: 16,
                 children: [
-                  // DatePicker สำหรับ startDate
+// DatePicker สำหรับ startDate
                   SizedBox(
                     width: dropdownWidth,
                     child: GestureDetector(
@@ -142,11 +142,15 @@ class _ComparisonPageState extends State<ComparisonPage> {
                         DateTime initialDate = startDate != null
                             ? DateTime.parse(startDate!)
                             : DateTime.now();
+                        // กำหนด lastDate เป็นวันที่สิ้นสุดที่เลือกไว้ (ถ้ามี) ไม่เช่นนั้นใช้ DateTime(2030)
+                        final DateTime lastDate = endDate != null
+                            ? DateTime.parse(endDate!)
+                            : DateTime(2030);
                         final DateTime? picked = await showDatePicker(
                           context: context,
                           initialDate: initialDate,
                           firstDate: DateTime(2020),
-                          lastDate: DateTime(2030),
+                          lastDate: lastDate,
                         );
                         if (picked != null) {
                           setState(() {
@@ -165,7 +169,8 @@ class _ComparisonPageState extends State<ComparisonPage> {
                       ),
                     ),
                   ),
-                  // DatePicker สำหรับ endDate
+
+// DatePicker สำหรับ endDate
                   SizedBox(
                     width: dropdownWidth,
                     child: GestureDetector(
@@ -173,11 +178,20 @@ class _ComparisonPageState extends State<ComparisonPage> {
                         DateTime initialDate = endDate != null
                             ? DateTime.parse(endDate!)
                             : DateTime.now();
+                        final DateTime today = DateTime.now();
+                        // กำหนด maxEndDate ให้เป็น 90 วันล่วงหน้าจากวันนี้
+                        final DateTime maxEndDate =
+                            today.add(Duration(days: 90));
+                        // กำหนด firstDate เป็นวันที่เริ่มต้นที่เลือกไว้ (ถ้ามี) ไม่เช่นนั้นใช้ DateTime(2020)
+                        final DateTime firstDate = startDate != null
+                            ? DateTime.parse(startDate!)
+                            : DateTime(2020);
                         final DateTime? picked = await showDatePicker(
                           context: context,
                           initialDate: initialDate,
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime(2030),
+                          firstDate: firstDate,
+                          lastDate:
+                              maxEndDate, // จำกัดให้เลือกไม่เกิน 90 วันล่วงหน้าจากวันนี้
                         );
                         if (picked != null) {
                           setState(() {
@@ -254,6 +268,13 @@ class _ComparisonPageState extends State<ComparisonPage> {
                               vegetable['image'],
                               height: 120,
                               fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Image.asset(
+                                  'assets/vegetables.jpg',
+                                  height: 120,
+                                  fit: BoxFit.cover,
+                                );
+                              },
                             ),
                             const SizedBox(height: 8),
                             Text(

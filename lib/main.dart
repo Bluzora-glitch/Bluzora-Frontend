@@ -33,19 +33,34 @@ class BluzoraApp extends StatelessWidget {
       onGenerateRoute: (settings) {
         switch (settings.name) {
           case '/':
+            // ตรวจสอบ arguments ว่ามี key scrollToHistoricalPrice หรือไม่
+            final args = settings.arguments as Map<String, dynamic>? ?? {};
+            final scrollToHistoricalPrice =
+                args['scrollToHistoricalPrice'] ?? false;
             return MaterialPageRoute(
-              builder: (context) => const MainLayout(child: HomePage()),
+              builder: (context) => MainLayout(
+                child:
+                    HomePage(scrollToHistoricalPrice: scrollToHistoricalPrice),
+              ),
             );
           case '/price_forecast':
             return MaterialPageRoute(
               builder: (context) =>
-                  const MainLayout(child: PriceForecastPage()),
+                  MainLayout(child: const PriceForecastPage()),
             );
           case '/quarterly_avg':
             final args = settings.arguments as Map<String, dynamic>;
+            // ปรับให้รองรับข้อมูลเดิม
+            final vegetable =
+                args.containsKey('vegetable') ? args['vegetable'] : args;
+            final showAppBar =
+                args.containsKey('showAppBar') ? args['showAppBar'] : true;
             return MaterialPageRoute(
               builder: (context) => MainLayout(
-                child: QuarterlyAvgPage(vegetable: args),
+                child: QuarterlyAvgPage(
+                  vegetable: vegetable,
+                  showAppBar: showAppBar,
+                ),
               ),
             );
           case '/comparison':
@@ -54,7 +69,7 @@ class BluzoraApp extends StatelessWidget {
             );
           default:
             return MaterialPageRoute(
-              builder: (context) => const MainLayout(child: HomePage()),
+              builder: (context) => MainLayout(child: const HomePage()),
             );
         }
       },
