@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:http/http.dart' as http;
 import 'quarterly_avg.dart';
 
 class VegetableCardScreen extends StatefulWidget {
-  const VegetableCardScreen({Key? key}) : super(key: key);
+  const VegetableCardScreen({super.key});
 
   @override
   _VegetableCardScreenState createState() => _VegetableCardScreenState();
@@ -12,6 +12,7 @@ class VegetableCardScreen extends StatefulWidget {
 
 class _VegetableCardScreenState extends State<VegetableCardScreen> {
   List<Map<String, dynamic>> vegetables = [];
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -19,13 +20,44 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
     _loadVegetables();
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadVegetables() async {
-    final String response =
-        await rootBundle.loadString('assets/vegetables.json');
-    final List<dynamic> data = json.decode(response);
-    setState(() {
-      vegetables = List<Map<String, dynamic>>.from(data);
-    });
+    const url = 'http://127.0.0.1:8000/api/crop-info-list/';
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body);
+        List<Map<String, dynamic>> resultList = [];
+        if (jsonData == null) {
+          resultList = [];
+        } else if (jsonData is List) {
+          resultList = List<Map<String, dynamic>>.from(jsonData);
+        } else if (jsonData is Map && jsonData.containsKey("results")) {
+          resultList = List<Map<String, dynamic>>.from(jsonData["results"]);
+        } else {
+          resultList = [];
+        }
+        setState(() {
+          vegetables = resultList;
+        });
+        print("Vegetable data loaded from API: $vegetables");
+      } else {
+        print('Error loading vegetables: ${response.statusCode}');
+        setState(() {
+          vegetables = [];
+        });
+      }
+    } catch (e) {
+      print('Exception loading vegetables: $e');
+      setState(() {
+        vegetables = [];
+      });
+    }
   }
 
   @override
@@ -33,31 +65,83 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         double screenWidth = constraints.maxWidth;
-        bool isMobile = screenWidth < 600; // ตรวจสอบว่าหน้าจอเล็กกว่าหรือไม่
+        bool isMobile = screenWidth < 600;
 
         return vegetables.isEmpty
             ? const Center(child: CircularProgressIndicator())
             : Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: isMobile
-                    ? _buildMobileListView()
-                    : _buildDesktopScrollableRow(), // ใช้แบบเลื่อนแนวนอนแทน GridView
+                child: isMobile ? _buildMobileListView() : _buildDesktopView(),
               );
       },
     );
   }
 
-  /// สำหรับเดสก์ท็อป: แสดงเป็นแนวนอนเลื่อน
-  Widget _buildDesktopScrollableRow() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal, // ให้เลื่อนแนวนอนได้
-      child: Row(
-        children: vegetables.map((vegetable) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: _buildVegetableCard(vegetable),
-          );
-        }).toList(),
+  Widget _buildDesktopView() {
+    // กำหนดความกว้างเป็น 80% ของหน้าจอเพื่อให้เกิด overflow แน่นอน
+    double containerWidth = MediaQuery.of(context).size.width * 0.8;
+    double containerHeight = 300; // ความสูงของส่วนการ์ด
+
+    return Center(
+      child: SizedBox(
+        width: containerWidth,
+        height: containerHeight,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // แถวของการ์ดผัก
+            SingleChildScrollView(
+              controller: _scrollController,
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: vegetables.map((vegetable) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: _buildVegetableCard(vegetable),
+                  );
+                }).toList(),
+              ),
+            ),
+            // ปุ่มเลื่อนซ้าย
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: _buildCircleButton(
+                  icon: Icons.arrow_back_ios,
+                  onTap: () {
+                    _scrollController.animateTo(
+                      _scrollController.offset - 600,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
+                  },
+                ),
+              ),
+            ),
+            // ปุ่มเลื่อนขวา
+            Positioned(
+              right: 0,
+              top: 0,
+              bottom: 0,
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: _buildCircleButton(
+                  icon: Icons.arrow_forward_ios,
+                  onTap: () {
+                    _scrollController.animateTo(
+                      _scrollController.offset + 600,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -66,7 +150,7 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
   Widget _buildMobileListView() {
     return ListView.builder(
       shrinkWrap: true,
-      physics: const ClampingScrollPhysics(), // ป้องกันการล็อค Scroll
+      physics: const ClampingScrollPhysics(),
       itemCount: vegetables.length,
       itemBuilder: (context, index) {
         return _buildVegetableCard(vegetables[index]);
@@ -74,7 +158,27 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
     );
   }
 
-  /// วิดเจ็ตสร้างการ์ดของแต่ละรายการ
+  /// ปุ่มกลมๆ สำหรับเลื่อนซ้าย-ขวา
+  Widget _buildCircleButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8.0),
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withOpacity(0.7), // ปรับความเข้มให้เห็นชัดขึ้น
+      ),
+      child: IconButton(
+        icon: Icon(icon, size: 20),
+        onPressed: onTap,
+      ),
+    );
+  }
+
+  /// สร้างการ์ดสำหรับแต่ละรายการผัก
   Widget _buildVegetableCard(Map<String, dynamic> vegetable) {
     double screenWidth = MediaQuery.of(context).size.width;
 
@@ -97,12 +201,11 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
             ? 110 // แท็บเล็ต
             : 70; // มือถือ
 
-    // ✅ ปรับความห่างของขอบบนและล่าง
     double verticalMargin = screenWidth > 1024
-        ? 8.0 // เดสก์ท็อป
+        ? 8.0
         : screenWidth > 600
-            ? 6.0 // แท็บเล็ต
-            : 4.0; // มือถือ
+            ? 6.0
+            : 4.0;
 
     return GestureDetector(
       onTap: () {
@@ -114,8 +217,7 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
         );
       },
       child: Card(
-        margin: EdgeInsets.symmetric(
-            vertical: verticalMargin), // ✅ ใช้ตัวแปรที่ปรับขนาด
+        margin: EdgeInsets.symmetric(vertical: verticalMargin),
         color: Colors.white,
         child: SizedBox(
           width: cardWidth,
@@ -125,33 +227,45 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Image.asset(
-                  vegetable['image']!,
+                Image.network(
+                  vegetable['image'] ?? '',
                   height: imageHeight,
                   fit: BoxFit.cover,
                   width: double.infinity,
+                  errorBuilder: (context, error, stackTrace) {
+                    // เมื่อไม่สามารถโหลดรูปจาก URL ได้ ให้แสดงรูป default จาก assets
+                    return Image.asset(
+                      'assets/vegetables.png',
+                      height: imageHeight,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                    );
+                  },
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  vegetable["name"],
+                  vegetable["name"] ?? "ไม่ระบุชื่อ",
                   style: TextStyle(
-                    fontSize: screenWidth > 600
-                        ? 18.0
-                        : 16.0, // ลดขนาดฟอนต์ลงในมือถือ
+                    fontSize: screenWidth > 600 ? 18.0 : 16.0,
                     fontWeight: FontWeight.bold,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 6.0),
                 Text(
-                  vegetable["price"],
+                  vegetable["price"]?.toString() ?? "-",
                   style: TextStyle(fontSize: screenWidth > 600 ? 16.0 : 14.0),
                 ),
                 const SizedBox(height: 6.0),
                 Text(
-                  vegetable["change"],
+                  vegetable["change"]?.toString() ?? "-",
                   style: TextStyle(
                     fontSize: screenWidth > 600 ? 14.0 : 12.0,
-                    color: Colors.green,
+                    color:
+                        (vegetable["status"]?.toString().toLowerCase() == "up")
+                            ? Colors.green
+                            : Colors.red,
                   ),
                 ),
               ],

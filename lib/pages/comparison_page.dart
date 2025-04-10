@@ -1,7 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+
+// นำเข้า VegetableForecastCard
 import 'vegetableForecastCard.dart';
+
+// นำเข้า ComparisonGraph ตัวจริง
+import 'ComparisonGraph.dart';
 
 class ComparisonPage extends StatefulWidget {
   @override
@@ -13,6 +19,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
   String? endDate;
   List<String> selectedVegetables = [];
 
+  // โหลดข้อมูลผักจาก API
   List<Map<String, dynamic>> vegetables = [];
   bool isForecastVisible = false;
 
@@ -22,260 +29,405 @@ class _ComparisonPageState extends State<ComparisonPage> {
     loadVegetablesData();
   }
 
+  // โหลดข้อมูลผักจาก API (/api/crop-info-list/)
   Future<void> loadVegetablesData() async {
-    final String jsonString =
-        await rootBundle.loadString('assets/vegetables.json');
-    final List<dynamic> jsonData = json.decode(jsonString);
-    setState(() {
-      vegetables = jsonData.cast<Map<String, dynamic>>();
-    });
+    const url = 'http://127.0.0.1:8000/api/crop-info-list/';
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body);
+        List<Map<String, dynamic>> resultList = [];
+        if (jsonData == null) {
+          resultList = [];
+        } else if (jsonData is List) {
+          resultList = List<Map<String, dynamic>>.from(jsonData);
+        } else if (jsonData is Map && jsonData.containsKey("results")) {
+          resultList = List<Map<String, dynamic>>.from(jsonData["results"]);
+        }
+        setState(() {
+          vegetables = resultList;
+        });
+        print("Vegetable data loaded from API: $vegetables");
+      } else {
+        print('Error loading vegetables: ${response.statusCode}');
+        setState(() {
+          vegetables = [];
+        });
+      }
+    } catch (e) {
+      print('Exception loading vegetables: $e');
+      setState(() {
+        vegetables = [];
+      });
+    }
+  }
+
+  // ฟังก์ชันสำหรับเรียก API /api/quarterly-avg/ เพื่อดึงข้อมูล forecast
+  Future<Map<String, dynamic>> fetchForecastData(String cropName) async {
+    if (startDate == null || endDate == null) {
+      throw Exception("StartDate or EndDate is missing");
+    }
+    final url =
+        'http://127.0.0.1:8000/api/quarterly-avg/?crop_name=$cropName&startDate=$startDate&endDate=$endDate';
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception("Failed to load forecast data");
+    }
+  }
+
+  // ฟังก์ชันรวบรวมข้อมูล forecast สำหรับผักที่เลือกทั้งหมด
+  Future<List<Map<String, dynamic>>> _fetchAllForecastData() async {
+    List<Map<String, dynamic>> results = [];
+    for (var vegName in selectedVegetables) {
+      final data = await fetchForecastData(vegName);
+      // หากไม่มี dailyPrices / predictedPrices ให้ใส่ [] ไว้
+      data['dailyPrices'] = data['dailyPrices'] ?? [];
+      data['predictedPrices'] = data['predictedPrices'] ?? [];
+      data['name'] = data['name'] ?? vegName;
+      results.add(data);
+    }
+    return results;
   }
 
   @override
   Widget build(BuildContext context) {
+    double screenWidth = MediaQuery.of(context).size.width;
+    double paddingHorizontal;
+    double cardWidth;
+    double dropdownWidth;
+
+    if (screenWidth > 1024) {
+      paddingHorizontal = 70;
+      cardWidth = 250;
+      dropdownWidth = 250;
+    } else if (screenWidth > 600) {
+      paddingHorizontal = 50;
+      cardWidth = 200;
+      dropdownWidth = 200;
+    } else {
+      paddingHorizontal = 20;
+      cardWidth = 160;
+      dropdownWidth = double.infinity;
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFEBEDF0),
-      body: LayoutBuilder(builder: (context, constraints) {
-        // เช็คความกว้างหน้าจอ
-        double screenWidth = constraints.maxWidth;
-        double paddingHorizontal;
-        double cardWidth;
-        double dropdownWidth;
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: paddingHorizontal,
+            vertical: 30,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ส่วนเลือกช่วงเวลา
+              const Text(
+                'เลือกช่วงเวลา',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
 
-        // ปรับขนาดตามหน้าจอ
-        if (screenWidth > 1024) {
-          // Desktop
-          paddingHorizontal = 70;
-          cardWidth = 250;
-          dropdownWidth = 250;
-        } else if (screenWidth > 600) {
-          // Tablet
-          paddingHorizontal = 50;
-          cardWidth = 200;
-          dropdownWidth = 200;
-        } else {
-          // Mobile
-          paddingHorizontal = 20;
-          cardWidth = 160;
-          dropdownWidth = double.infinity;
-        }
-
-        return SingleChildScrollView(
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-                horizontal: paddingHorizontal, vertical: 30),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // เลือกช่วงเวลา
-                const Text(
-                  'เลือกช่วงเวลา',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 20),
-
-                // Dropdown เลือกวันที่
-                Wrap(
-                  spacing: 16,
-                  runSpacing: 16,
-                  children: [
-                    SizedBox(
-                      width: dropdownWidth,
-                      child: DropdownButtonFormField<String>(
-                        decoration: InputDecoration(
+              Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                children: [
+// DatePicker สำหรับ startDate
+                  SizedBox(
+                    width: dropdownWidth,
+                    child: GestureDetector(
+                      onTap: () async {
+                        DateTime initialDate = startDate != null
+                            ? DateTime.parse(startDate!)
+                            : DateTime.now();
+                        // กำหนด lastDate เป็นวันที่สิ้นสุดที่เลือกไว้ (ถ้ามี) ไม่เช่นนั้นใช้ DateTime(2030)
+                        final DateTime lastDate = endDate != null
+                            ? DateTime.parse(endDate!)
+                            : DateTime(2030);
+                        final DateTime? picked = await showDatePicker(
+                          context: context,
+                          initialDate: initialDate,
+                          firstDate: DateTime(2020),
+                          lastDate: lastDate,
+                        );
+                        if (picked != null) {
+                          setState(() {
+                            startDate = DateFormat('yyyy-MM-dd').format(picked);
+                          });
+                        }
+                      },
+                      child: InputDecorator(
+                        decoration: const InputDecoration(
                           labelText: 'วันที่เริ่มต้น',
                           filled: true,
                           fillColor: Colors.white,
                           border: OutlineInputBorder(),
                         ),
-                        items: vegetables
-                            .expand(
-                                (veg) => veg['dailyPrices'] as List<dynamic>)
-                            .map((priceData) => priceData['date'] as String)
-                            .toSet()
-                            .toList()
-                            .map((date) {
-                          return DropdownMenuItem(
-                              value: date, child: Text(date));
-                        }).toList(),
-                        onChanged: (value) => setState(() => startDate = value),
+                        child: Text(startDate ?? ''),
                       ),
                     ),
-                    SizedBox(
-                      width: dropdownWidth,
-                      child: DropdownButtonFormField<String>(
-                        decoration: InputDecoration(
+                  ),
+
+// DatePicker สำหรับ endDate
+                  SizedBox(
+                    width: dropdownWidth,
+                    child: GestureDetector(
+                      onTap: () async {
+                        DateTime initialDate = endDate != null
+                            ? DateTime.parse(endDate!)
+                            : DateTime.now();
+                        final DateTime today = DateTime.now();
+                        // กำหนด maxEndDate ให้เป็น 90 วันล่วงหน้าจากวันนี้
+                        final DateTime maxEndDate =
+                            today.add(Duration(days: 90));
+                        // กำหนด firstDate เป็นวันที่เริ่มต้นที่เลือกไว้ (ถ้ามี) ไม่เช่นนั้นใช้ DateTime(2020)
+                        final DateTime firstDate = startDate != null
+                            ? DateTime.parse(startDate!)
+                            : DateTime(2020);
+                        final DateTime? picked = await showDatePicker(
+                          context: context,
+                          initialDate: initialDate,
+                          firstDate: firstDate,
+                          lastDate:
+                              maxEndDate, // จำกัดให้เลือกไม่เกิน 90 วันล่วงหน้าจากวันนี้
+                        );
+                        if (picked != null) {
+                          setState(() {
+                            endDate = DateFormat('yyyy-MM-dd').format(picked);
+                          });
+                        }
+                      },
+                      child: InputDecorator(
+                        decoration: const InputDecoration(
                           labelText: 'วันที่สิ้นสุด',
                           filled: true,
                           fillColor: Colors.white,
                           border: OutlineInputBorder(),
                         ),
-                        items: vegetables
-                            .expand(
-                                (veg) => veg['dailyPrices'] as List<dynamic>)
-                            .map((priceData) => priceData['date'] as String)
-                            .toSet()
-                            .toList()
-                            .map((date) {
-                          return DropdownMenuItem(
-                              value: date, child: Text(date));
-                        }).toList(),
-                        onChanged: (value) => setState(() => endDate = value),
+                        child: Text(endDate ?? ''),
                       ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+              // ผักที่ต้องการเปรียบเทียบ
+              const Text(
+                'ผักที่ต้องการเปรียบเทียบ',
+                style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+
+              SizedBox(
+                width: double.infinity,
+                child: DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    labelText: 'เลือกผักที่ต้องการเปรียบเทียบ',
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(),
+                  ),
+                  items: vegetables.map((veg) {
+                    final name = veg['name'] as String? ?? 'ไม่ระบุชื่อ';
+                    return DropdownMenuItem(
+                      value: name,
+                      child: Text(name),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null && !selectedVegetables.contains(value)) {
+                      setState(() {
+                        selectedVegetables.add(value);
+                      });
+                    }
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 16),
+              // แสดงการ์ดผักที่เลือก
+              if (selectedVegetables.isNotEmpty)
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 16,
+                  children: selectedVegetables.map((vegName) {
+                    final vegetable =
+                        vegetables.firstWhere((v) => v['name'] == vegName);
+                    return SizedBox(
+                      width: cardWidth,
+                      child: Card(
+                        color: Colors.white,
+                        elevation: 2,
+                        clipBehavior: Clip.antiAlias,
+                        child: Column(
+                          children: [
+                            Image.network(
+                              vegetable['image'],
+                              height: 120,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Image.asset(
+                                  'assets/vegetables.jpg',
+                                  height: 120,
+                                  fit: BoxFit.cover,
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              vegetable['name'],
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              vegetable['price'],
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close, color: Colors.red),
+                              onPressed: () {
+                                setState(() {
+                                  selectedVegetables.remove(vegName);
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+
+              const SizedBox(height: 16),
+              Center(
+                child: ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      isForecastVisible = true;
+                    });
+                    print('เริ่มการคำนวณ...');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 30, vertical: 15),
+                    textStyle: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  child: const Text('เปรียบเทียบราคาพืช'),
+                ),
+              ),
+
+              const SizedBox(height: 32),
+              // แสดงผลการคำนวณการพยากรณ์
+              if (isForecastVisible && selectedVegetables.isNotEmpty)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'แดชบอร์ดเปรียบเทียบราคาพืช',
+                      style:
+                          TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 16),
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: selectedVegetables.length,
+                      itemBuilder: (context, index) {
+                        final vegName = selectedVegetables[index];
+                        final vegetable =
+                            vegetables.firstWhere((v) => v['name'] == vegName);
+                        return FutureBuilder<Map<String, dynamic>>(
+                          future: (startDate == null || endDate == null)
+                              // ถ้า startDate หรือ endDate ยังเป็น null, ให้ส่ง Future.error หรือ Future.value({})
+                              ? Future.error("ยังไม่ได้เลือกวันที่")
+                              : fetchForecastData(vegName),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Center(
+                                  child: CircularProgressIndicator());
+                            } else if (snapshot.hasError) {
+                              return Center(
+                                  child: Text("Error: ${snapshot.error}"));
+                            } else {
+                              final forecastData = snapshot.data ?? {};
+                              return VegetableForecastCard(
+                                imageUrl: vegetable['image'],
+                                name: vegetable['name'],
+                                price: 'ราคาพยากรณ์: ${vegetable['price']}',
+                                startDate: startDate ?? '',
+                                endDate: endDate ?? '',
+                                summary: forecastData['summary'] ??
+                                    {
+                                      "overall_average": 0.0,
+                                      "overall_min": 0.0,
+                                      "overall_max": 0.0,
+                                      "price_change": "-"
+                                    },
+                                graphDailyPrices:
+                                    forecastData['dailyPrices'] ?? [],
+                                graphPredictedPrices:
+                                    forecastData['predictedPrices'] ?? [],
+                              );
+                            }
+                          },
+                        );
+                      },
                     ),
                   ],
                 ),
 
-                const SizedBox(height: 16),
+              const SizedBox(height: 32),
+              // ส่วนแสดงกราฟเปรียบเทียบราคาผัก
+              const Text(
+                'กราฟเปรียบเทียบราคาผัก',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 30),
 
-// ผักที่ต้องการเปรียบเทียบ
-                const Text(
-                  'ผักที่ต้องการเปรียบเทียบ',
-                  style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-
-                SizedBox(
+              // ตรวจสอบก่อนว่า startDate / endDate เป็น null หรือไม่
+              if (startDate == null || endDate == null)
+                Container(
+                  height: 200,
                   width: double.infinity,
-                  child: DropdownButtonFormField<String>(
-                    decoration: InputDecoration(
-                      labelText: 'เลือกผักที่ต้องการเปรียบเทียบ',
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(),
-                    ),
-                    items: vegetables.map((veg) {
-                      final name = veg['name'] as String? ?? 'ไม่ระบุชื่อ';
-                      return DropdownMenuItem(
-                        value: name,
-                        child: Text(name),
+                  color: Colors.white,
+                  alignment: Alignment.center,
+                  child: const Text(
+                    "กรุณาเลือกวันที่",
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                )
+              else
+                // เมื่อมี startDate และ endDate แล้ว จึงเรียก FutureBuilder
+                FutureBuilder<List<Map<String, dynamic>>>(
+                  future: _fetchAllForecastData(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Center(child: Text("Error: ${snapshot.error}"));
+                    } else {
+                      final forecastDataList = snapshot.data ?? [];
+                      return ComparisonGraph(
+                        forecastDataList: forecastDataList,
+                        startDate: DateTime.parse(startDate!),
+                        endDate: DateTime.parse(endDate!),
                       );
-                    }).toList(),
-                    onChanged: (value) {
-                      if (value != null &&
-                          !selectedVegetables.contains(value)) {
-                        setState(() {
-                          selectedVegetables.add(value);
-                        });
-                      }
-                    },
-                  ),
+                    }
+                  },
                 ),
-
-                const SizedBox(height: 16),
-
-                // การ์ดผักที่เลือก
-                if (selectedVegetables.isNotEmpty)
-                  Wrap(
-                    spacing: 16,
-                    runSpacing: 16,
-                    children: selectedVegetables.map((vegName) {
-                      final vegetable =
-                          vegetables.firstWhere((v) => v['name'] == vegName);
-                      return SizedBox(
-                        width: cardWidth,
-                        child: Card(
-                          color: Colors.white,
-                          elevation: 2,
-                          clipBehavior: Clip.antiAlias,
-                          child: Column(
-                            children: [
-                              Image.asset(
-                                vegetable['image'],
-                                height: 120,
-                                fit: BoxFit.cover,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                vegetable['name'],
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              Text(
-                                vegetable['price'],
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                              IconButton(
-                                icon:
-                                    const Icon(Icons.close, color: Colors.red),
-                                onPressed: () {
-                                  setState(() {
-                                    selectedVegetables.remove(vegName);
-                                  });
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-
-                const SizedBox(height: 16),
-
-                // ปุ่มสำหรับทำการคำนวณการพยากรณ์
-                Center(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // Logic สำหรับการคำนวณ
-                      setState(() {
-                        isForecastVisible = true; // กดแล้วจะแสดงการ์ดใหม่
-                      });
-                      print('เริ่มการคำนวณ...');
-                    },
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 30, vertical: 15),
-                      textStyle: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    child: const Text('ทำการคำนวณการพยากรณ์'),
-                  ),
-                ),
-
-                const SizedBox(height: 32),
-
-                // การ์ดใหม่แสดงผลการคำนวณ
-                if (isForecastVisible && selectedVegetables.isNotEmpty)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'ผลการคำนวณการพยากรณ์',
-                        style: TextStyle(
-                            fontSize: 25, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 16),
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: selectedVegetables.length,
-                        itemBuilder: (context, index) {
-                          final vegName = selectedVegetables[index];
-                          final vegetable = vegetables
-                              .firstWhere((v) => v['name'] == vegName);
-
-                          // ใช้ VegetableForecastCard แทน
-                          return VegetableForecastCard(
-                            imageUrl:
-                                vegetable['image'], // เปลี่ยนเป็นพาธของรูปภาพ
-                            name: vegetable['name'], // ชื่อผัก
-                            price:
-                                'ราคาพยากรณ์: ${vegetable['price']}', // ราคาที่ต้องการแสดง
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-              ],
-            ),
+            ],
           ),
-        );
-      }),
+        ),
+      ),
     );
   }
 }

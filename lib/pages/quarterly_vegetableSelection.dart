@@ -139,7 +139,7 @@ class VegetableSelection extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    // ใช้ `QuarterlyGraph` ที่นำเข้าแทนของเดิม
+                    // ใช้ QuarterlyGraph ที่นำเข้าแทนของเดิม
                     Container(
                       width: double.infinity,
                       height: 250,
