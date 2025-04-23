@@ -10,12 +10,12 @@ import 'package:url_launcher/url_launcher.dart';
 
 class QuarterlyAvgPage extends StatefulWidget {
   final Map<String, dynamic> vegetable;
-  final bool showAppBar; // พารามิเตอร์ใหม่
+  final bool showAppBar;
 
   const QuarterlyAvgPage({
     Key? key,
     required this.vegetable,
-    this.showAppBar = true, // ค่า default คือ true
+    this.showAppBar = true,
   }) : super(key: key);
 
   @override
@@ -25,37 +25,31 @@ class QuarterlyAvgPage extends StatefulWidget {
 class _QuarterlyAvgPageState extends State<QuarterlyAvgPage> {
   late String startDate;
   late String endDate;
-  Map<String, dynamic>? fetchedData; // ข้อมูลที่ดึงมาจาก API
+  Map<String, dynamic>? fetchedData;
   bool isLoading = false;
-  bool showYearlyComparison = false; // ควบคุมการแสดง Widget ใหม่
-  List<Map<String, dynamic>>? yearlyData; // เก็บข้อมูลรายปีที่ดึงมา
+  bool showYearlyComparison = false;
+  List<Map<String, dynamic>>? yearlyData;
 
   @override
   void initState() {
     super.initState();
-    // ตั้งค่า default: 30 วันก่อนถึงวันนี้
     final now = DateTime.now();
     final defaultStart = now.subtract(const Duration(days: 30));
     startDate = DateFormat('yyyy-MM-dd').format(defaultStart);
     endDate = DateFormat('yyyy-MM-dd').format(now);
-    // เรียก API อัตโนมัติเมื่อหน้าจอเปิด
     _fetchData();
   }
 
   Future<void> _fetchData() async {
-    setState(() {
-      isLoading = true;
-    });
+    setState(() => isLoading = true);
     final cropName = widget.vegetable['name'];
     final url =
         'http://127.0.0.1:8000/api/quarterly-avg/?crop_name=$cropName&startDate=$startDate&endDate=$endDate';
-
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
         setState(() {
-          fetchedData = data;
+          fetchedData = jsonDecode(response.body);
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -67,32 +61,24 @@ class _QuarterlyAvgPageState extends State<QuarterlyAvgPage> {
         SnackBar(content: Text("Error fetching data: $e")),
       );
     }
-    setState(() {
-      isLoading = false;
-    });
+    setState(() => isLoading = false);
   }
 
-  // ฟังก์ชันอัพเดทวันที่และเรียก API ใหม่ทันที
   void _updateDateRange(String newStart, String newEnd) {
     setState(() {
       startDate = newStart;
       endDate = newEnd;
-      showYearlyComparison =
-          false; // เมื่อวันที่เปลี่ยนแล้ว ซ่อนกราฟเปรียบเทียบรายปี
+      showYearlyComparison = false;
     });
     _fetchData();
   }
 
-  /// ฟังก์ชันดาวน์โหลดข้อมูล (เรียก API Excel)
   Future<void> _downloadExcel() async {
     final cropName = widget.vegetable['name'];
     final url =
         'http://127.0.0.1:8000/api/export-excel/?vegetableName=$cropName&startDate=$startDate&endDate=$endDate';
-
     final uri = Uri.parse(url);
-
     if (await canLaunchUrl(uri)) {
-      // เปิดลิงก์ในเบราว์เซอร์ภายนอก
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -101,34 +87,24 @@ class _QuarterlyAvgPageState extends State<QuarterlyAvgPage> {
     }
   }
 
-  // ฟังก์ชันสำหรับดึงข้อมูลรายปี
   Future<void> _fetchYearlyComparisonData() async {
-    // สมมติเราจะดึงข้อมูลย้อนหลัง 3 ปี (หรือมากกว่า) จากช่วงที่ผู้ใช้เลือก
-    // เช่นถ้า user เลือก 01/03/2025 - 31/03/2025
-    // เราจะคำนวณ 2024, 2023, 2022 ช่วงเดียวกัน
-
     if (startDate.isEmpty || endDate.isEmpty) return;
-
     final start = DateTime.parse(startDate);
     final end = DateTime.parse(endDate);
-    final currentYear = start.year; // สมมติเอาปีของ start เป็นหลัก
-
+    final currentYear = start.year;
     List<Map<String, dynamic>> tempResults = [];
 
-    // ฟังก์ชันย่อยสำหรับดึงข้อมูล
     Future<Map<String, dynamic>> _fetchOneYear(int yearDiff) async {
       final newStart = DateTime(currentYear - yearDiff, start.month, start.day);
       final newEnd = DateTime(currentYear - yearDiff, end.month, end.day);
-      // เรียก API เหมือน _fetchData() แต่ใส่ปีเก่า
       final cropName = widget.vegetable['name'];
       final url = 'http://127.0.0.1:8000/api/quarterly-avg/?crop_name=$cropName'
           '&startDate=${newStart.toString().split(" ")[0]}'
           '&endDate=${newEnd.toString().split(" ")[0]}';
-
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        data['year'] = newStart.year; // ใส่ข้อมูลปีลงไป
+        data['year'] = newStart.year;
         return data;
       } else {
         return {};
@@ -136,115 +112,83 @@ class _QuarterlyAvgPageState extends State<QuarterlyAvgPage> {
     }
 
     setState(() => isLoading = true);
-
-    // ดึงข้อมูลย้อนหลัง 3 ปี
     for (int i = 0; i <= 3; i++) {
       final oneYearData = await _fetchOneYear(i);
-      if (oneYearData.isNotEmpty) {
-        tempResults.add(oneYearData);
-      }
+      if (oneYearData.isNotEmpty) tempResults.add(oneYearData);
     }
-
     setState(() {
       yearlyData = tempResults;
-      showYearlyComparison = true; // ให้แสดง widget ใหม่
+      showYearlyComparison = true;
       isLoading = false;
     });
   }
 
-  // callback สำหรับปุ่ม "เปรียบเทียบราคาพืชรายปี"
   void _onYearlyComparisonPressed() {
     _fetchYearlyComparisonData();
   }
 
   @override
   Widget build(BuildContext context) {
-    // ลบ appBar ออก เพื่อให้ใช้ NavBar หลักเพียงอย่างเดียว
     return Scaffold(
       appBar: widget.showAppBar
-          ? AppBar(
-              title: Text(widget.vegetable['name']),
-            )
+          ? AppBar(title: Text(widget.vegetable['name']))
           : null,
       backgroundColor: const Color(0xFFEBEDF0),
-      // ไม่ใส่ appBar ตรงนี้
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          // ใช้ Column + Row เหมือนเดิม
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Vegetable Selection + Graph + Table
-              ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: MediaQuery.of(context).size.height * 0.5,
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ------------------------------------
-                    // คอลัมน์ซ้าย (Expanded flex: 2)
-                    // ------------------------------------
-                    Expanded(
-                      flex: 2,
-                      child: Column(
-                        children: [
-                          VegetableSelection(
-                            vegetable: widget.vegetable,
-                            onDateRangeSelected: (start, end) {
-                              _updateDateRange(start, end);
-                            },
-                            onDownloadExcel: _downloadExcel,
-                            onYearlyComparisonPressed:
-                                _onYearlyComparisonPressed,
-                          ),
-                          const SizedBox(height: 16),
-                          Container(
-                            width: double.infinity,
-                            height: 300,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: fetchedData == null
-                                ? Center(
-                                    child: isLoading
-                                        ? const CircularProgressIndicator()
-                                        : const Text(
-                                            "กรุณาเลือกวันที่เพื่อดูกราฟ",
-                                            style:
-                                                TextStyle(color: Colors.grey),
-                                          ),
-                                  )
-                                : (fetchedData!['dailyPrices'] == null ||
-                                        (fetchedData!['dailyPrices'] as List)
-                                            .isEmpty)
-                                    ? const Center(
-                                        child: Text(
-                                          "ไม่พบข้อมูลในช่วงเวลานี้",
-                                          style: TextStyle(color: Colors.grey),
-                                        ),
-                                      )
-                                    : QuarterlyGraph(
-                                        startDate: DateFormat('yyyy-MM-dd')
-                                            .parse(startDate),
-                                        endDate: DateFormat('yyyy-MM-dd')
-                                            .parse(endDate),
-                                        dailyPrices:
-                                            fetchedData!['dailyPrices'],
-                                      ),
-                          ),
-                        ],
+              // *** Responsive Section ***
+              LayoutBuilder(builder: (context, constraints) {
+                // ถ้าความกว้าง < 800: Column, else: Row
+                if (constraints.maxWidth < 800) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      VegetableSelection(
+                        vegetable: widget.vegetable,
+                        onDateRangeSelected: (s, e) => _updateDateRange(s, e),
+                        onDownloadExcel: _downloadExcel,
+                        onYearlyComparisonPressed: _onYearlyComparisonPressed,
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    // ------------------------------------
-                    // คอลัมน์ขวา (Expanded flex: 1)
-                    // ------------------------------------
-                    Expanded(
-                      flex: 1,
-                      child: fetchedData == null
+                      const SizedBox(height: 16),
+                      Container(
+                        width: double.infinity,
+                        height: 300,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: fetchedData == null
+                            ? Center(
+                                child: isLoading
+                                    ? const CircularProgressIndicator()
+                                    : const Text(
+                                        "กรุณาเลือกวันที่เพื่อดูกราฟ",
+                                        style: TextStyle(color: Colors.grey),
+                                      ),
+                              )
+                            : (fetchedData!['dailyPrices'] == null ||
+                                    (fetchedData!['dailyPrices'] as List)
+                                        .isEmpty)
+                                ? const Center(
+                                    child: Text(
+                                      "ไม่พบข้อมูลในช่วงเวลานี้",
+                                      style: TextStyle(color: Colors.grey),
+                                    ),
+                                  )
+                                : QuarterlyGraph(
+                                    startDate: DateFormat('yyyy-MM-dd')
+                                        .parse(startDate),
+                                    endDate:
+                                        DateFormat('yyyy-MM-dd').parse(endDate),
+                                    dailyPrices: fetchedData!['dailyPrices'],
+                                  ),
+                      ),
+                      const SizedBox(height: 16),
+                      fetchedData == null
                           ? Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
@@ -277,12 +221,114 @@ class _QuarterlyAvgPageState extends State<QuarterlyAvgPage> {
                                 ),
                               ),
                             ),
+                    ],
+                  );
+                } else {
+                  // desktop / tablet
+                  return ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: MediaQuery.of(context).size.height * 0.5,
                     ),
-                  ],
-                ),
-              ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: Column(
+                            children: [
+                              VegetableSelection(
+                                vegetable: widget.vegetable,
+                                onDateRangeSelected: (s, e) =>
+                                    _updateDateRange(s, e),
+                                onDownloadExcel: _downloadExcel,
+                                onYearlyComparisonPressed:
+                                    _onYearlyComparisonPressed,
+                              ),
+                              const SizedBox(height: 16),
+                              Container(
+                                width: double.infinity,
+                                height: 300,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: fetchedData == null
+                                    ? Center(
+                                        child: isLoading
+                                            ? const CircularProgressIndicator()
+                                            : const Text(
+                                                "กรุณาเลือกวันที่เพื่อดูกราฟ",
+                                                style: TextStyle(
+                                                    color: Colors.grey),
+                                              ),
+                                      )
+                                    : (fetchedData!['dailyPrices'] == null ||
+                                            (fetchedData!['dailyPrices']
+                                                    as List)
+                                                .isEmpty)
+                                        ? const Center(
+                                            child: Text(
+                                              "ไม่พบข้อมูลในช่วงเวลานี้",
+                                              style:
+                                                  TextStyle(color: Colors.grey),
+                                            ),
+                                          )
+                                        : QuarterlyGraph(
+                                            startDate: DateFormat('yyyy-MM-dd')
+                                                .parse(startDate),
+                                            endDate: DateFormat('yyyy-MM-dd')
+                                                .parse(endDate),
+                                            dailyPrices:
+                                                fetchedData!['dailyPrices'],
+                                          ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          flex: 1,
+                          child: fetchedData == null
+                              ? Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Center(
+                                    child: isLoading
+                                        ? const CircularProgressIndicator()
+                                        : const Text(
+                                            "กรุณาเลือกวันที่เพื่อดูตาราง",
+                                            style:
+                                                TextStyle(color: Colors.grey),
+                                          ),
+                                  ),
+                                )
+                              : Container(
+                                  height: 500,
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: SingleChildScrollView(
+                                    child: PriceTableNew(
+                                      dailyPrices: fetchedData!['dailyPrices'],
+                                      summary: fetchedData!['summary'],
+                                      unit: widget.vegetable['unit'],
+                                      imageUrl: widget.vegetable['image'],
+                                      name: widget.vegetable['name'],
+                                    ),
+                                  ),
+                                ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+              }),
               const SizedBox(height: 32),
-              // ถ้า showYearlyComparison เป็น true ให้แสดง widget ใหม่
               if (showYearlyComparison)
                 YearlyComparisonGraph(
                   mainStartDate: startDate,
@@ -290,7 +336,6 @@ class _QuarterlyAvgPageState extends State<QuarterlyAvgPage> {
                   yearlyData: yearlyData ?? [],
                 ),
               const SizedBox(height: 32),
-              // Comparison Section
               Center(
                 child: InkWell(
                   onTap: () {
@@ -317,7 +362,6 @@ class _QuarterlyAvgPageState extends State<QuarterlyAvgPage> {
                 ),
               ),
               const SizedBox(height: 32),
-              // Price Forecast Section
               Center(
                 child: InkWell(
                   onTap: () {
@@ -353,14 +397,12 @@ class _QuarterlyAvgPageState extends State<QuarterlyAvgPage> {
 }
 
 /// --------------------------------------------------------------------------
-/// VegetableSelection: widget ย่อย มีหน้าที่แค่เลือกวันที่ + แสดงข้อมูลผัก
-/// แต่จะได้รับ callback onDownloadExcel จาก parent เพื่อเรียกดาวน์โหลด
+/// VegetableSelection: widget ย่อย ปรับขนาดรูป + Wrap ปุ่มอัตโนมัติ
 /// --------------------------------------------------------------------------
 class VegetableSelection extends StatefulWidget {
   final Map<String, dynamic> vegetable;
   final Function(String startDate, String endDate) onDateRangeSelected;
   final VoidCallback onDownloadExcel;
-  // เพิ่ม callback ใหม่สำหรับ yearly comparison
   final VoidCallback onYearlyComparisonPressed;
 
   const VegetableSelection({
@@ -381,7 +423,6 @@ class _VegetableSelectionState extends State<VegetableSelection> {
 
   Future<void> _pickStartDate() async {
     final firstDate = DateTime(2000);
-    // หากมี selectedEndDate ให้จำกัดไม่ให้เลือกวันที่หลังจาก selectedEndDate
     final lastDate = selectedEndDate ?? DateTime.now();
     final initialDate =
         selectedStartDate ?? lastDate.subtract(const Duration(days: 30));
@@ -406,7 +447,6 @@ class _VegetableSelectionState extends State<VegetableSelection> {
   }
 
   Future<void> _pickEndDate() async {
-    // หากมี selectedStartDate ให้จำกัดไม่ให้เลือกวันที่ก่อน selectedStartDate
     final firstDate = selectedStartDate ?? DateTime(2000);
     final lastDate = DateTime.now();
     final initialDate = selectedEndDate ?? DateTime.now();
@@ -432,6 +472,10 @@ class _VegetableSelectionState extends State<VegetableSelection> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final imageSize =
+        screenWidth > 600 ? 150.0 : (screenWidth > 400 ? 120.0 : 80.0);
+
     final defaultStart = DateTime.now().subtract(const Duration(days: 30));
     final defaultEnd = DateTime.now();
     final displayStart = selectedStartDate ?? defaultStart;
@@ -443,170 +487,153 @@ class _VegetableSelectionState extends State<VegetableSelection> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ส่วนบน: รูปซ้าย + ชื่อผัก + หน่วย
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 150,
-                height: 150,
-                child: Image.network(
-                  widget.vegetable['image'],
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Center(
-                      child: Text("Image not available"),
-                    );
-                  },
+          // รูปผัก
+          Container(
+            width: imageSize,
+            height: imageSize,
+            child: Image.network(
+              widget.vegetable['image'],
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) =>
+                  const Center(child: Text("Image not available")),
+            ),
+          ),
+          const SizedBox(width: 16),
+
+          // คอลัมน์ขวา: ชื่อ/หน่วย, ปุ่ม quick range, ปุ่ม date/comparison/download
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ชื่อ + หน่วย
+                Text(
+                  widget.vegetable['name'],
+                  style: const TextStyle(
+                      fontSize: 24, fontWeight: FontWeight.bold),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                Text(
+                  "หน่วย: ${widget.vegetable['unit']}",
+                  style: const TextStyle(fontSize: 18, color: Colors.grey),
+                ),
+
+                const SizedBox(height: 12),
+
+                // ——— ปุ่ม 10 วัน / 1 เดือน / 3 เดือน ———
+                Row(
                   children: [
-                    Text(
-                      widget.vegetable['name'],
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        side: const BorderSide(color: Colors.grey),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                       ),
+                      onPressed: () {
+                        final now = DateTime.now();
+                        final tenDaysAgo =
+                            now.subtract(const Duration(days: 10));
+                        setState(() {
+                          selectedStartDate = tenDaysAgo;
+                          selectedEndDate = now;
+                        });
+                        widget.onDateRangeSelected(
+                          DateFormat('yyyy-MM-dd').format(tenDaysAgo),
+                          DateFormat('yyyy-MM-dd').format(now),
+                        );
+                      },
+                      child: const Text("10 วัน"),
                     ),
-                    Text(
-                      "หน่วย: ${widget.vegetable['unit']}",
-                      style: const TextStyle(
-                        fontSize: 18,
-                        color: Colors.grey,
+                    const SizedBox(width: 8),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        side: const BorderSide(color: Colors.grey),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                       ),
+                      onPressed: () {
+                        final now = DateTime.now();
+                        final oneMonthAgo =
+                            now.subtract(const Duration(days: 30));
+                        setState(() {
+                          selectedStartDate = oneMonthAgo;
+                          selectedEndDate = now;
+                        });
+                        widget.onDateRangeSelected(
+                          DateFormat('yyyy-MM-dd').format(oneMonthAgo),
+                          DateFormat('yyyy-MM-dd').format(now),
+                        );
+                      },
+                      child: const Text("1 เดือน"),
                     ),
-                    const SizedBox(height: 8),
-                    // ปุ่ม 10 วัน, 1 เดือน, 3 เดือน
-                    Row(
-                      children: [
-                        TextButton(
-                          style: TextButton.styleFrom(
-                            side: const BorderSide(color: Colors.grey),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                          ),
-                          onPressed: () {
-                            final now = DateTime.now();
-                            final tenDaysAgo =
-                                now.subtract(const Duration(days: 10));
-                            setState(() {
-                              selectedStartDate = tenDaysAgo;
-                              selectedEndDate = now;
-                            });
-                            widget.onDateRangeSelected(
-                              DateFormat('yyyy-MM-dd')
-                                  .format(selectedStartDate!),
-                              DateFormat('yyyy-MM-dd').format(selectedEndDate!),
-                            );
-                          },
-                          child: const Text("10 วัน"),
-                        ),
-                        const SizedBox(width: 8),
-                        TextButton(
-                          style: TextButton.styleFrom(
-                            side: const BorderSide(color: Colors.grey),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                          ),
-                          onPressed: () {
-                            final now = DateTime.now();
-                            final oneMonthAgo =
-                                now.subtract(const Duration(days: 30));
-                            setState(() {
-                              selectedStartDate = oneMonthAgo;
-                              selectedEndDate = now;
-                            });
-                            widget.onDateRangeSelected(
-                              DateFormat('yyyy-MM-dd')
-                                  .format(selectedStartDate!),
-                              DateFormat('yyyy-MM-dd').format(selectedEndDate!),
-                            );
-                          },
-                          child: const Text("1 เดือน"),
-                        ),
-                        const SizedBox(width: 8),
-                        TextButton(
-                          style: TextButton.styleFrom(
-                            side: const BorderSide(color: Colors.grey),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                          ),
-                          onPressed: () {
-                            final now = DateTime.now();
-                            final threeMonthsAgo =
-                                now.subtract(const Duration(days: 90));
-                            setState(() {
-                              selectedStartDate = threeMonthsAgo;
-                              selectedEndDate = now;
-                            });
-                            widget.onDateRangeSelected(
-                              DateFormat('yyyy-MM-dd')
-                                  .format(selectedStartDate!),
-                              DateFormat('yyyy-MM-dd').format(selectedEndDate!),
-                            );
-                          },
-                          child: const Text("3 เดือน"),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: _pickStartDate,
-                            child: Text(
-                              "วันที่เริ่มต้น: ${DateFormat('dd/MM/yyyy').format(displayStart)}",
-                              style: const TextStyle(fontSize: 13),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: _pickEndDate,
-                            child: Text(
-                              "วันที่สิ้นสุด: ${DateFormat('dd/MM/yyyy').format(displayEnd)}",
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: widget.onYearlyComparisonPressed,
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 12),
-                            ),
-                            child: const Text("เปรียบเทียบราคาพืชรายปี"),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: widget.onDownloadExcel,
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 12),
-                            ),
-                            child: const Text("ดาวน์โหลดข้อมูล"),
-                          ),
-                        ),
-                      ],
+                    const SizedBox(width: 8),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        side: const BorderSide(color: Colors.grey),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                      ),
+                      onPressed: () {
+                        final now = DateTime.now();
+                        final threeMonthsAgo =
+                            now.subtract(const Duration(days: 90));
+                        setState(() {
+                          selectedStartDate = threeMonthsAgo;
+                          selectedEndDate = now;
+                        });
+                        widget.onDateRangeSelected(
+                          DateFormat('yyyy-MM-dd').format(threeMonthsAgo),
+                          DateFormat('yyyy-MM-dd').format(now),
+                        );
+                      },
+                      child: const Text("3 เดือน"),
                     ),
                   ],
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 16),
+
+                // ——— ปุ่ม วันที่–เปรียบเทียบ–ดาวน์โหลด (Wrap) ———
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ElevatedButton(
+                      onPressed: _pickStartDate,
+                      child: Text(
+                        "วันที่เริ่มต้น: ${DateFormat('dd/MM/yyyy').format(displayStart)}",
+                        style: const TextStyle(fontSize: 13),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    ElevatedButton(
+                      onPressed: _pickEndDate,
+                      child: Text(
+                        "วันที่สิ้นสุด: ${DateFormat('dd/MM/yyyy').format(displayEnd)}",
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    ElevatedButton(
+                      onPressed: widget.onYearlyComparisonPressed,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                      ),
+                      child: const Text("เปรียบเทียบราคาพืชรายปี"),
+                    ),
+                    ElevatedButton(
+                      onPressed: widget.onDownloadExcel,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                      ),
+                      child: const Text("ดาวน์โหลดข้อมูล"),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),
