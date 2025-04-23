@@ -2,11 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-
-// นำเข้า VegetableForecastCard
+import 'dart:convert';
 import 'vegetableForecastCard.dart';
-
-// นำเข้า ComparisonGraph ตัวจริง
 import 'ComparisonGraph.dart';
 
 class ComparisonPage extends StatefulWidget {
@@ -64,17 +61,50 @@ class _ComparisonPageState extends State<ComparisonPage> {
 
   // ฟังก์ชันสำหรับเรียก API /api/quarterly-avg/ เพื่อดึงข้อมูล forecast
   Future<Map<String, dynamic>> fetchForecastData(String cropName) async {
-    if (startDate == null || endDate == null) {
-      throw Exception("StartDate or EndDate is missing");
-    }
-    final url =
-        'http://127.0.0.1:8000/api/quarterly-avg/?crop_name=$cropName&startDate=$startDate&endDate=$endDate';
+    final url = 'http://127.0.0.1:8000/api/combined-priceforecast/'
+        '?vegetableName=$cropName'
+        '&startDate=$startDate'
+        '&endDate=$endDate';
     final response = await http.get(Uri.parse(url));
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception("Failed to load forecast data");
+    if (response.statusCode != 200) {
+      throw Exception('Failed to load forecast data');
     }
+    final String utf8Body = utf8.decode(response.bodyBytes);
+    final Map<String, dynamic> json = jsonDecode(utf8Body);
+
+    // 1. แยก results ออกเป็น historical vs predicted
+    final List<dynamic> results = json['results'] as List<dynamic>;
+    final dailyPrices = results
+        .where((e) => e['type'] == 'historical')
+        .map((e) => <String, String>{
+              'date': e['date'] as String,
+              'min_price': e['min_price'].toString(),
+              'max_price': e['max_price'].toString(),
+              'average_price': e['price'].toString(),
+            })
+        .toList();
+    final predictedPrices = results
+        .where((e) => e['type'] == 'predicted')
+        .map((e) => <String, String>{
+              'date': e['date'] as String,
+              'predicted_price': e['price'].toString(),
+            })
+        .toList();
+
+    // 2. อ่านชื่อผัก (crop_name) จากผลลัพธ์
+    final name =
+        results.isNotEmpty ? (results.first['crop_name'] as String) : cropName;
+
+    // 3. ดึง summary จาก overall_summary
+    final summary = (json['overall_summary'] as Map<String, dynamic>?) ?? {};
+
+    // คืนข้อมูลในรูปแบบที่ UI เดิมคาดหวัง
+    return {
+      'name': name,
+      'dailyPrices': dailyPrices,
+      'predictedPrices': predictedPrices,
+      'summary': summary,
+    };
   }
 
   // ฟังก์ชันรวบรวมข้อมูล forecast สำหรับผักที่เลือกทั้งหมด
@@ -82,11 +112,15 @@ class _ComparisonPageState extends State<ComparisonPage> {
     List<Map<String, dynamic>> results = [];
     for (var vegName in selectedVegetables) {
       final data = await fetchForecastData(vegName);
-      // หากไม่มี dailyPrices / predictedPrices ให้ใส่ [] ไว้
-      data['dailyPrices'] = data['dailyPrices'] ?? [];
-      data['predictedPrices'] = data['predictedPrices'] ?? [];
-      data['name'] = data['name'] ?? vegName;
-      results.add(data);
+      // ให้แน่ใจว่ามี key สองอันนี้แม้ API คืนมาเป็น null
+      final dp = data['dailyPrices'] as List<dynamic>? ?? [];
+      final pp = data['predictedPrices'] as List<dynamic>? ?? [];
+      results.add({
+        'name': data['name'] ?? vegName,
+        'dailyPrices': dp,
+        'predictedPrices': pp,
+        'summary': data['summary'] ?? {},
+      });
     }
     return results;
   }
