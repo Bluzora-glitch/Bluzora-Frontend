@@ -6,7 +6,6 @@ import 'package:http/http.dart' as http;
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-// เพิ่มการ import ของไฟล์ component_crop_recommendation.dart
 import 'component_crop_recommendation.dart';
 
 class PriceForecastPage extends StatefulWidget {
@@ -23,8 +22,6 @@ class _PriceForecastPageState extends State<PriceForecastPage> {
   String? selectedEndDate;
   bool showGraph = false;
   bool showRecommendations = false;
-
-  // เพิ่ม state สำหรับ overall summary ที่จะได้จาก API
   Map<String, dynamic>? overallSummary;
 
   @override
@@ -33,67 +30,46 @@ class _PriceForecastPageState extends State<PriceForecastPage> {
     loadVegetableData();
   }
 
-  // ดึงข้อมูลผักจาก Django API
   Future<void> loadVegetableData() async {
     final url = 'http://127.0.0.1:8000/api/crops-list/';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
-        List<dynamic> resultList = [];
-        if (jsonData == null) {
-          resultList = [];
-        } else if (jsonData is List) {
+        List<dynamic> resultList;
+        if (jsonData is List) {
           resultList = jsonData;
         } else if (jsonData is Map && jsonData.containsKey("results")) {
           resultList = jsonData["results"] ?? [];
         } else {
           resultList = [];
         }
-        setState(() {
-          vegetableData = resultList;
-        });
-        print("Vegetable data loaded: $vegetableData");
+        setState(() => vegetableData = resultList);
       } else {
-        print('Error loading crops: ${response.statusCode}');
-        setState(() {
-          vegetableData = [];
-        });
+        setState(() => vegetableData = []);
       }
     } catch (e) {
-      print('Exception loading crops: $e');
-      setState(() {
-        vegetableData = [];
-      });
+      setState(() => vegetableData = []);
     }
   }
 
-  // เรียก API เพื่อดึง overall summary จาก combined_price_forecast endpoint
   Future<void> fetchOverallSummary() async {
     if (selectedVegetable == null ||
         selectedStartDate == null ||
-        selectedEndDate == null) {
-      return;
-    }
-    final url =
-        'http://127.0.0.1:8000/api/combined-priceforecast/?vegetableName=$selectedVegetable&startDate=$selectedStartDate&endDate=$selectedEndDate';
+        selectedEndDate == null) return;
+    final url = 'http://127.0.0.1:8000/api/combined-priceforecast/'
+        '?vegetableName=$selectedVegetable'
+        '&startDate=$selectedStartDate'
+        '&endDate=$selectedEndDate';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
-        // overall_summary ควรอยู่ใน jsonData['overall_summary']
-        setState(() {
-          overallSummary = jsonData['overall_summary'];
-        });
-      } else {
-        print('Error fetching overall summary: ${response.statusCode}');
+        setState(() => overallSummary = jsonData['overall_summary']);
       }
-    } catch (e) {
-      print('Exception fetching overall summary: $e');
-    }
+    } catch (_) {}
   }
 
-  // _selectStartDate() และ _selectEndDate() เหมือนเดิม
   Future<void> _selectStartDate() async {
     final DateTime lastDate = selectedEndDate != null
         ? DateTime.parse(selectedEndDate!)
@@ -101,17 +77,16 @@ class _PriceForecastPageState extends State<PriceForecastPage> {
     final DateTime initialDate = selectedStartDate != null
         ? DateTime.parse(selectedStartDate!)
         : DateTime.now();
-    final DateTime? picked = await showDatePicker(
+    final picked = await showDatePicker(
       context: context,
       initialDate: initialDate,
       firstDate: DateTime(2020),
       lastDate: lastDate,
     );
     if (picked != null) {
-      setState(() {
-        selectedStartDate = DateFormat('yyyy-MM-dd').format(picked);
-      });
-      fetchOverallSummary(); // เรียกทุกครั้งที่เปลี่ยนวันที่เริ่มต้น
+      setState(
+          () => selectedStartDate = DateFormat('yyyy-MM-dd').format(picked));
+      fetchOverallSummary();
     }
   }
 
@@ -120,23 +95,19 @@ class _PriceForecastPageState extends State<PriceForecastPage> {
     final DateTime maxEndDate = today.add(Duration(days: 90));
     final DateTime firstDate =
         selectedStartDate != null ? DateTime.parse(selectedStartDate!) : today;
-    // ใช้ firstDate เป็น initialDate ถ้า selectedEndDate ยังไม่มีค่า
     final DateTime initialDate =
         selectedEndDate != null ? DateTime.parse(selectedEndDate!) : firstDate;
-    final DateTime? picked = await showDatePicker(
+    final picked = await showDatePicker(
       context: context,
       initialDate: initialDate,
       firstDate: firstDate,
       lastDate: maxEndDate,
     );
     if (picked != null) {
-      setState(() {
-        selectedEndDate = DateFormat('yyyy-MM-dd').format(picked);
-      });
+      setState(() => selectedEndDate = DateFormat('yyyy-MM-dd').format(picked));
     }
   }
 
-  // ฟังก์ชันดาวน์โหลด Excel (ใช้ url_launcher) เหมือนเดิม
   void downloadExcel() async {
     if (selectedVegetable == null ||
         selectedStartDate == null ||
@@ -146,12 +117,12 @@ class _PriceForecastPageState extends State<PriceForecastPage> {
       );
       return;
     }
-    final url =
-        'http://127.0.0.1:8000/api/export-excel/?vegetableName=$selectedVegetable&startDate=$selectedStartDate&endDate=$selectedEndDate';
+    final url = 'http://127.0.0.1:8000/api/export-excel/'
+        '?vegetableName=$selectedVegetable'
+        '&startDate=$selectedStartDate'
+        '&endDate=$selectedEndDate';
     if (await canLaunch(url)) {
       await launch(url);
-    } else {
-      print("ไม่สามารถเปิด URL ได้");
     }
   }
 
@@ -163,7 +134,7 @@ class _PriceForecastPageState extends State<PriceForecastPage> {
         showGraph = true;
         showRecommendations = true;
       });
-      fetchOverallSummary(); // เรียกข้อมูลใหม่เมื่อกดพยากรณ์
+      fetchOverallSummary();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('กรุณาเลือกผักและวันที่ให้ครบถ้วน')),
@@ -182,9 +153,26 @@ class _PriceForecastPageState extends State<PriceForecastPage> {
     });
   }
 
+  int _calculateDuration(String start, String end) {
+    final startD = DateTime.parse(start);
+    final endD = DateTime.parse(end);
+    return endD.difference(startD).inDays;
+  }
+
   @override
   Widget build(BuildContext context) {
-    // หา details ของผักที่เลือกจาก vegetableData
+    final width = MediaQuery.of(context).size.width;
+    final bool isDesktop = width >= 1024;
+    final bool isTablet = width >= 600 && width < 1024;
+    final bool isMobile = width < 600;
+
+    // Horizontal padding for ForecastSection
+    final double sectionHPadding = isDesktop
+        ? 150
+        : isTablet
+            ? 80
+            : 16;
+
     final selectedCrop = vegetableData.firstWhere(
       (veg) => veg['crop_name'] == selectedVegetable,
       orElse: () => null,
@@ -201,31 +189,40 @@ class _PriceForecastPageState extends State<PriceForecastPage> {
               selectedVegetable: selectedVegetable,
               selectedStartDate: selectedStartDate,
               selectedEndDate: selectedEndDate,
-              onVegetableChanged: (value) {
-                setState(() {
-                  selectedVegetable = value;
-                });
-                fetchOverallSummary(); // เรียกข้อมูลใหม่เมื่อเปลี่ยนชื่อผัก
+              onVegetableChanged: (v) {
+                setState(() => selectedVegetable = v);
+                fetchOverallSummary();
               },
               onForecastPressed: onForecastPressed,
               onClearPressed: onClearPressed,
               onStartDateTap: _selectStartDate,
               onEndDateTap: _selectEndDate,
             ),
+            // GraphPlaceholder with legend repositioned on mobile
             if (showGraph)
-              GraphPlaceholder(
-                key: ValueKey(
-                    'graph-${selectedVegetable}-${selectedStartDate}-${selectedEndDate}'),
-                vegetableName: selectedVegetable ?? '',
-                startDate: selectedStartDate ?? '',
-                endDate: selectedEndDate ?? '',
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: GraphPlaceholder(
+                  key: ValueKey(
+                      'graph-$selectedVegetable-$selectedStartDate-$selectedEndDate'),
+                  vegetableName: selectedVegetable ?? '',
+                  startDate: selectedStartDate ?? '',
+                  endDate: selectedEndDate ?? '',
+                  legendPosition:
+                      isMobile ? LegendPosition.bottom : LegendPosition.right,
+                  legendOrientation: isMobile
+                      ? LegendItemOrientation.horizontal
+                      : LegendItemOrientation.vertical,
+                ),
               ),
+
+            // Recommendations (no layout change)
             if (showRecommendations &&
                 overallSummary != null &&
                 selectedCrop != null)
               CropRecommendationWidget(
                 key: ValueKey(
-                    'recommend-${selectedVegetable}-${selectedStartDate}-${selectedEndDate}'),
+                    'recommend-$selectedVegetable-$selectedStartDate-$selectedEndDate'),
                 cropName: selectedCrop['crop_name'],
                 unit: selectedCrop['unit'],
                 minGrowthDuration: selectedCrop['min_growth_duration'] ?? 0,
@@ -238,12 +235,12 @@ class _PriceForecastPageState extends State<PriceForecastPage> {
                     _calculateDuration(selectedStartDate!, selectedEndDate!),
                 startDate: selectedStartDate!,
                 endDate: selectedEndDate!,
-                overallAverage: overallSummary?['overall_average'] ?? 0.0,
-                overallMin: overallSummary?['overall_min'] ?? 0.0,
-                overallMax: overallSummary?['overall_max'] ?? 0.0,
-                volatilityPercent: overallSummary?['volatility_percent'] ?? 0.0,
+                overallAverage: overallSummary!['overall_average'] ?? 0.0,
+                overallMin: overallSummary!['overall_min'] ?? 0.0,
+                overallMax: overallSummary!['overall_max'] ?? 0.0,
+                volatilityPercent: overallSummary!['volatility_percent'] ?? 0.0,
                 priceChangePercent:
-                    overallSummary?['price_change_percent'] ?? 0.0,
+                    overallSummary!['price_change_percent'] ?? 0.0,
                 onDownloadPressed: downloadExcel,
                 onClearPressed: onClearPressed,
               ),
@@ -252,19 +249,11 @@ class _PriceForecastPageState extends State<PriceForecastPage> {
       ),
     );
   }
-
-  // ฟังก์ชันช่วยคำนวณจำนวนวันในช่วง
-  int _calculateDuration(String start, String end) {
-    final DateTime startD = DateTime.parse(start);
-    final DateTime endD = DateTime.parse(end);
-    return endD.difference(startD).inDays;
-  }
 }
 
 // ---------------------------
-// ด้านล่างเป็นคลาส ForecastSection และ GraphPlaceholder เหมือนเดิม
+// ForecastSection with responsive padding
 // ---------------------------
-
 class ForecastSection extends StatelessWidget {
   final List<dynamic> vegetableData;
   final String? selectedVegetable;
@@ -290,35 +279,40 @@ class ForecastSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final bool isDesktop = width >= 1024;
+    final bool isTablet = width >= 600 && width < 1024;
+    final bool isMobile = width < 600;
+
+    final double hPadding = isDesktop
+        ? 150
+        : isTablet
+            ? 80
+            : 16;
+
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 50.0),
-      padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+      margin: const EdgeInsets.symmetric(vertical: 50),
+      padding: EdgeInsets.symmetric(horizontal: hPadding, vertical: 20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(0.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 4.0,
-            offset: Offset(0, 2),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: Text(
-              'พยากรณ์ราคาผัก',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
+          Text(
+            'พยากรณ์ราคาผัก',
+            style: TextStyle(
+              fontSize: isDesktop
+                  ? 24
+                  : isTablet
+                      ? 22
+                      : 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
             ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           DropdownButtonFormField<String>(
             decoration: InputDecoration(
               labelText: 'เลือกผักที่ต้องการพยากรณ์',
@@ -333,7 +327,7 @@ class ForecastSection extends StatelessWidget {
             }).toList(),
             onChanged: onVegetableChanged,
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
@@ -355,7 +349,7 @@ class ForecastSection extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Expanded(
                 child: GestureDetector(
                   onTap: onEndDateTap,
@@ -377,19 +371,15 @@ class ForecastSection extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               ElevatedButton(
-                onPressed: onForecastPressed,
-                child: Text('พยากรณ์'),
-              ),
-              SizedBox(width: 8),
+                  onPressed: onForecastPressed, child: Text('พยากรณ์')),
+              const SizedBox(width: 8),
               OutlinedButton(
-                onPressed: onClearPressed,
-                child: Text('ล้างข้อมูล'),
-              ),
+                  onPressed: onClearPressed, child: Text('ล้างข้อมูล')),
             ],
           ),
         ],
@@ -398,16 +388,23 @@ class ForecastSection extends StatelessWidget {
   }
 }
 
+// ---------------------------
+// GraphPlaceholder with responsive legend
+// ---------------------------
 class GraphPlaceholder extends StatefulWidget {
   final String vegetableName;
   final String startDate;
   final String endDate;
+  final LegendPosition legendPosition;
+  final LegendItemOrientation legendOrientation;
 
   const GraphPlaceholder({
     Key? key,
     required this.vegetableName,
     required this.startDate,
     required this.endDate,
+    this.legendPosition = LegendPosition.right,
+    this.legendOrientation = LegendItemOrientation.vertical,
   }) : super(key: key);
 
   @override
@@ -427,26 +424,20 @@ class _GraphPlaceholderState extends State<GraphPlaceholder> {
     super.initState();
     _tooltipBehavior = TooltipBehavior(
       enable: true,
-      builder: (dynamic data, dynamic point, dynamic series, int pointIndex,
-          int seriesIndex) {
-        ChartData chartData = data;
-        String tooltipText = "";
-        if (series.name == "ราคาจริง") {
-          tooltipText =
-              "ราคาจริง\nวันที่: ${DateFormat('d MMM yyyy').format(chartData.date)}\nราคาเฉลี่ย: ${chartData.avgPrice}\nช่วงราคา: ${chartData.minPrice} - ${chartData.maxPrice}";
-        } else if (series.name == "ราคาพยากรณ์") {
-          tooltipText =
-              "ราคาพยากรณ์\nวันที่: ${DateFormat('d MMM yyyy').format(chartData.date)}\nราคา: ${chartData.predictedPrice}";
-        }
+      builder: (dynamic data, dynamic point, dynamic series, int pi, int si) {
+        final cd = data as ChartData;
+        final isPred = cd.predictedPrice != null && cd.predictedPrice! > 0;
+        final typeText = isPred ? "ราคาพยากรณ์" : "ราคาย้อนหลัง";
+        final priceText = isPred
+            ? cd.predictedPrice!.toStringAsFixed(0)
+            : (cd.avgPrice?.toStringAsFixed(0) ?? '-');
         return Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.black87,
-            borderRadius: BorderRadius.circular(4),
-          ),
+              color: Colors.black87, borderRadius: BorderRadius.circular(4)),
           child: Text(
-            tooltipText,
-            style: const TextStyle(color: Colors.white),
+            "$typeText\n${DateFormat('d MMM yyyy').format(cd.date)}\n฿$priceText",
+            style: const TextStyle(color: Colors.white, fontSize: 12),
           ),
         );
       },
@@ -455,17 +446,16 @@ class _GraphPlaceholderState extends State<GraphPlaceholder> {
   }
 
   Future<void> fetchData() async {
-    final url =
-        'http://127.0.0.1:8000/api/combined-priceforecast/?vegetableName=${widget.vegetableName}&startDate=${widget.startDate}&endDate=${widget.endDate}';
+    final url = 'http://127.0.0.1:8000/api/combined-priceforecast/'
+        '?vegetableName=${widget.vegetableName}'
+        '&startDate=${widget.startDate}'
+        '&endDate=${widget.endDate}';
     try {
       final response = await http.get(Uri.parse(url));
-      print('URL: $url');
-      print('Status Code: ${response.statusCode}');
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
         if (jsonData.containsKey('results')) {
           final List results = jsonData['results'];
-          // เพิ่มเงื่อนไขตรวจสอบกรณี results ว่าง
           if (results.isEmpty) {
             setState(() {
               message = "ไม่พบข้อมูลในช่วงเวลานี้";
@@ -473,33 +463,29 @@ class _GraphPlaceholderState extends State<GraphPlaceholder> {
               isLoading = false;
             });
           } else {
-            final List historicalResults =
-                results.where((item) => item['type'] == 'historical').toList();
-            final List predictedResults =
-                results.where((item) => item['type'] == 'predicted').toList();
-
-            historicalResults.sort((a, b) =>
+            final hist =
+                results.where((r) => r['type'] == "historical").toList();
+            final pred =
+                results.where((r) => r['type'] == "predicted").toList();
+            hist.sort((a, b) =>
                 DateTime.parse(a['date']).compareTo(DateTime.parse(b['date'])));
-            predictedResults.sort((a, b) =>
+            pred.sort((a, b) =>
                 DateTime.parse(a['date']).compareTo(DateTime.parse(b['date'])));
-
             setState(() {
-              historicalData = historicalResults.map((item) {
-                final dt = DateTime.parse(item['date']);
-                return ChartData(
-                  date: dt,
-                  minPrice: (item['min_price'] as num).toDouble(),
-                  maxPrice: (item['max_price'] as num).toDouble(),
-                  avgPrice: (item['price'] as num).toDouble(),
-                );
-              }).toList();
-              predictedData = predictedResults.map((item) {
-                final dt = DateTime.parse(item['date']);
-                return ChartData(
-                  date: dt,
-                  predictedPrice: (item['price'] as num).toDouble(),
-                );
-              }).toList();
+              historicalData = hist
+                  .map((item) => ChartData(
+                        date: DateTime.parse(item['date']),
+                        minPrice: (item['min_price'] as num).toDouble(),
+                        maxPrice: (item['max_price'] as num).toDouble(),
+                        avgPrice: (item['price'] as num).toDouble(),
+                      ))
+                  .toList();
+              predictedData = pred
+                  .map((item) => ChartData(
+                        date: DateTime.parse(item['date']),
+                        predictedPrice: (item['price'] as num).toDouble(),
+                      ))
+                  .toList();
               isGraphData = true;
               isLoading = false;
             });
@@ -532,66 +518,61 @@ class _GraphPlaceholderState extends State<GraphPlaceholder> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Container(
-        height: 300,
-        width: double.infinity,
-        child: isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : isGraphData
-                ? SfCartesianChart(
-                    primaryXAxis: DateTimeAxis(
-                      dateFormat: DateFormat('d MMM'),
-                    ),
-                    title: ChartTitle(
-                        text: 'กราฟพยากรณ์ราคา (${widget.vegetableName})'),
-                    legend: Legend(isVisible: true),
-                    tooltipBehavior: _tooltipBehavior,
-                    series: <CartesianSeries>[
-                      RangeAreaSeries<ChartData, DateTime>(
-                        dataSource: historicalData,
-                        xValueMapper: (ChartData data, _) => data.date,
-                        lowValueMapper: (ChartData data, _) => data.minPrice,
-                        highValueMapper: (ChartData data, _) => data.maxPrice,
-                        name: 'historical range',
-                        color: Colors.blue.withOpacity(0.2),
-                        enableTooltip: false,
-                      ),
-                      LineSeries<ChartData, DateTime>(
-                        dataSource: historicalData,
-                        xValueMapper: (ChartData data, _) => data.date,
-                        yValueMapper: (ChartData data, _) => data.avgPrice,
-                        name: 'ราคาจริง',
-                        color: const Color.fromARGB(255, 141, 198, 245),
-                        dataLabelSettings: DataLabelSettings(isVisible: true),
-                        markerSettings: MarkerSettings(
-                            isVisible: true, width: 8, height: 8),
-                      ),
-                      LineSeries<ChartData, DateTime>(
-                        dataSource: predictedData,
-                        xValueMapper: (ChartData data, _) => data.date,
-                        yValueMapper: (ChartData data, _) =>
-                            data.predictedPrice,
-                        name: 'ราคาพยากรณ์',
-                        color: Colors.red,
-                        dataLabelSettings: DataLabelSettings(isVisible: true),
-                        markerSettings: MarkerSettings(
-                            isVisible: true, width: 8, height: 8),
-                      ),
-                    ],
-                  )
-                : Center(
-                    child: Text(
-                      message,
-                      style: TextStyle(
-                        color: Colors.grey[700],
-                        fontSize: 16,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
+    return Container(
+      height: 300,
+      width: double.infinity,
+      child: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : isGraphData
+              ? SfCartesianChart(
+                  primaryXAxis: DateTimeAxis(dateFormat: DateFormat('d MMM')),
+                  title: ChartTitle(
+                      text: 'กราฟพยากรณ์ราคา (${widget.vegetableName})'),
+                  legend: Legend(
+                    isVisible: true,
+                    position: widget.legendPosition,
+                    orientation: widget.legendOrientation,
                   ),
-      ),
+                  tooltipBehavior: _tooltipBehavior,
+                  series: <CartesianSeries>[
+                    RangeAreaSeries<ChartData, DateTime>(
+                      dataSource: historicalData,
+                      xValueMapper: (d, _) => d.date,
+                      lowValueMapper: (d, _) => d.minPrice,
+                      highValueMapper: (d, _) => d.maxPrice,
+                      name: 'historical range',
+                      color: Colors.blue.withOpacity(0.2),
+                      enableTooltip: false,
+                    ),
+                    LineSeries<ChartData, DateTime>(
+                      dataSource: historicalData,
+                      xValueMapper: (d, _) => d.date,
+                      yValueMapper: (d, _) => d.avgPrice,
+                      name: 'ราคาจริง',
+                      color: const Color.fromARGB(255, 141, 198, 245),
+                      dataLabelSettings: DataLabelSettings(isVisible: true),
+                      markerSettings:
+                          MarkerSettings(isVisible: true, width: 8, height: 8),
+                    ),
+                    LineSeries<ChartData, DateTime>(
+                      dataSource: predictedData,
+                      xValueMapper: (d, _) => d.date,
+                      yValueMapper: (d, _) => d.predictedPrice,
+                      name: 'ราคาพยากรณ์',
+                      color: Colors.red,
+                      dataLabelSettings: DataLabelSettings(isVisible: true),
+                      markerSettings:
+                          MarkerSettings(isVisible: true, width: 8, height: 8),
+                    ),
+                  ],
+                )
+              : Center(
+                  child: Text(
+                    message,
+                    style: TextStyle(color: Colors.grey[700], fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
     );
   }
 }

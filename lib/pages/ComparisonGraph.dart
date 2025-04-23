@@ -1,3 +1,5 @@
+// lib/pages/ComparisonGraph.dart
+
 import 'dart:ui' as ui; // สำหรับสร้าง gradient shader
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
@@ -26,11 +28,17 @@ class ComparisonGraph extends StatelessWidget {
   final DateTime startDate;
   final DateTime endDate;
 
+  /// ปรับตำแหน่งและแนวของ legend จากภายนอก
+  final LegendPosition legendPosition;
+  final LegendItemOrientation legendOrientation;
+
   const ComparisonGraph({
     Key? key,
     required this.forecastDataList,
     required this.startDate,
     required this.endDate,
+    this.legendPosition = LegendPosition.right,
+    this.legendOrientation = LegendItemOrientation.vertical,
   }) : super(key: key);
 
   @override
@@ -82,6 +90,7 @@ class ComparisonGraph extends StatelessWidget {
         }).toList()
           ..sort((a, b) => a.date.compareTo(b.date));
 
+        // กรองเฉพาะหลังสุดของ historical
         if (histData.isNotEmpty) {
           final lastHist = histData.last.date;
           predData = predData.where((d) => d.date.isAfter(lastHist)).toList();
@@ -95,12 +104,12 @@ class ComparisonGraph extends StatelessWidget {
       // เลือกสี
       final baseColor = baseColors[i % baseColors.length];
       final histColor = baseColor;
-      final predColor = baseColor.withValues(alpha: 0.5);
+      final predColor = baseColor.withOpacity(0.5);
 
-      // คำนวณตำแหน่ง gradient ตามเวลา
-      final double startMs = startDate.millisecondsSinceEpoch.toDouble();
-      final double endMs = endDate.millisecondsSinceEpoch.toDouble();
-      final double lastMs = histData.isNotEmpty
+      // คำนวณตำแหน่ง transition ของ gradient
+      final startMs = startDate.millisecondsSinceEpoch.toDouble();
+      final endMs = endDate.millisecondsSinceEpoch.toDouble();
+      final lastMs = histData.isNotEmpty
           ? histData.last.date.millisecondsSinceEpoch.toDouble()
           : startMs;
       final fraction = (endMs > startMs)
@@ -121,10 +130,9 @@ class ComparisonGraph extends StatelessWidget {
             }
             return d.predictedPrice ?? d.avgPrice ?? 0.0;
           },
-          // legend และ fallback stroke ใช้ baseColor
-          color: baseColor,
-          // ไล่สีเส้นด้วย gradient ตาม fraction
+          color: baseColor, // fallback สำหรับ legend และ stroke
           onCreateShader: (ShaderDetails details) {
+            // ใช้ details.rect ในการคำนวณ gradient
             final rect = details.rect;
             return ui.Gradient.linear(
               rect.topLeft,
@@ -133,7 +141,6 @@ class ComparisonGraph extends StatelessWidget {
               [0.0, fraction, fraction, 1.0],
             );
           },
-          // จุด marker ไล่สีตามช่วง historical/predicted
           pointColorMapper: (d, _) {
             if (histData.isNotEmpty &&
                 (d.date.isBefore(histData.last.date) ||
@@ -156,7 +163,12 @@ class ComparisonGraph extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: SfCartesianChart(
-        legend: Legend(isVisible: true, toggleSeriesVisibility: true),
+        legend: Legend(
+          isVisible: true,
+          toggleSeriesVisibility: true,
+          position: legendPosition,
+          orientation: legendOrientation,
+        ),
         primaryXAxis: DateTimeAxis(
           dateFormat: DateFormat('d MMM'),
           edgeLabelPlacement: EdgeLabelPlacement.shift,

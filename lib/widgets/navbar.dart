@@ -23,48 +23,168 @@ class _NavbarState extends State<Navbar> {
   }
 
   Future<void> _loadVegetables() async {
-    final String url = 'http://127.0.0.1:8000/api/crop-info-list/';
+    const String url = 'http://127.0.0.1:8000/api/crop-info-list/';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
         List<Map<String, dynamic>> resultList = [];
-        if (jsonData == null) {
-          resultList = [];
-        } else if (jsonData is List) {
+        if (jsonData is List) {
           resultList = List<Map<String, dynamic>>.from(jsonData);
         } else if (jsonData is Map && jsonData.containsKey("results")) {
           resultList = List<Map<String, dynamic>>.from(jsonData["results"]);
         }
-        setState(() {
-          vegetables = resultList;
-        });
-        print("Vegetable data loaded from API: $vegetables");
+        setState(() => vegetables = resultList);
       } else {
-        print('Error loading vegetables: ${response.statusCode}');
-        setState(() {
-          vegetables = [];
-        });
+        setState(() => vegetables = []);
       }
     } catch (e) {
-      print('Exception loading vegetables: $e');
-      setState(() {
-        vegetables = [];
-      });
+      setState(() => vegetables = []);
     }
+  }
+
+  void _openDrawer() {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Drawer',
+      pageBuilder: (_, __, ___) {
+        return Align(
+          alignment: Alignment.centerLeft,
+          child: SafeArea(
+            child: Material(
+              color: Colors.white,
+              child: Container(
+                width: 270,
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Search field
+                    TextField(
+                      controller: searchController,
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.search),
+                        hintText: 'ค้นหาผัก...',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    const SizedBox(height: 10),
+                    // Search suggestions
+                    if (searchController.text.isNotEmpty)
+                      Expanded(
+                        child: ListView(
+                          children: vegetables
+                              .map((v) => v['name'] as String)
+                              .where((name) => name.toLowerCase().contains(
+                                  searchController.text.toLowerCase()))
+                              .map((name) => ListTile(
+                                    title: Text(name),
+                                    onTap: () {
+                                      // navigate to quarterly avg page
+                                      final veg = vegetables.firstWhere(
+                                          (v) => v['name'] == name,
+                                          orElse: () => {});
+                                      if (veg.isNotEmpty) {
+                                        Navigator.pushReplacementNamed(
+                                          context,
+                                          '/quarterly_avg',
+                                          arguments: {
+                                            'vegetable': veg,
+                                            'showAppBar': false,
+                                          },
+                                        );
+                                      }
+                                    },
+                                  ))
+                              .toList(),
+                        ),
+                      ),
+                    const Divider(),
+                    // Navigation items
+                    ListTile(
+                      leading: const Icon(Icons.home),
+                      title: const Text('Home'),
+                      onTap: () {
+                        Navigator.pushReplacementNamed(context, '/');
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.show_chart),
+                      title: const Text('Price Forecast'),
+                      onTap: () {
+                        Navigator.pushReplacementNamed(
+                            context, '/price_forecast');
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.history),
+                      title: const Text('Historical Price'),
+                      onTap: () {
+                        Navigator.pushReplacementNamed(
+                          context,
+                          '/',
+                          arguments: {'scrollToHistoricalPrice': true},
+                        );
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.compare),
+                      title: const Text('Comparison'),
+                      onTap: () {
+                        Navigator.pushReplacementNamed(context, '/comparison');
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (_, anim, __, child) {
+        return SlideTransition(
+          position: Tween<Offset>(begin: const Offset(-1, 0), end: Offset.zero)
+              .animate(anim),
+          child: child,
+        );
+      },
+      transitionDuration: const Duration(milliseconds: 300),
+    );
+  }
+
+  Widget _buildNavItem(
+      BuildContext context, String label, String route, double textSize) {
+    return TextButton(
+      onPressed: () {
+        if (ModalRoute.of(context)?.settings.name != route) {
+          Navigator.pushReplacementNamed(context, route);
+        }
+      },
+      child: Text(label,
+          style: TextStyle(color: Colors.black, fontSize: textSize)),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    double screenWidth = MediaQuery.of(context).size.width;
-    double textSize = screenWidth > 800 ? 16 : 12;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final textSize = screenWidth > 800 ? 16.0 : 12.0;
 
     return AppBar(
-      title: const Text('Bluzora'),
+      leading: IconButton(
+        icon: const Icon(Icons.menu, color: Colors.black),
+        onPressed: _openDrawer,
+      ),
+      title: const Text('Bluzora', style: TextStyle(color: Colors.black)),
       backgroundColor: Colors.white,
       elevation: 0,
       centerTitle: false,
       actions: [
+        // ---- ปุ่มนำทาง ----
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -72,15 +192,10 @@ class _NavbarState extends State<Navbar> {
             _buildNavItem(
                 context, 'Price Forecast', '/price_forecast', textSize),
             if (screenWidth > 600)
-              // เปลี่ยนตรง Historical Price ให้ navigate ไปที่ Home พร้อม arguments
               TextButton(
                 onPressed: () {
-                  // นำทางกลับไปที่ Home พร้อมส่งค่า scrollToHistoricalPrice ให้ HomePage เลื่อนไปที่ส่วน Historical Price
-                  Navigator.pushReplacementNamed(
-                    context,
-                    '/',
-                    arguments: {'scrollToHistoricalPrice': true},
-                  );
+                  Navigator.pushReplacementNamed(context, '/',
+                      arguments: {'scrollToHistoricalPrice': true});
                 },
                 child: Text(
                   'Historical Price',
@@ -95,85 +210,60 @@ class _NavbarState extends State<Navbar> {
               ),
           ],
         ),
-        // ช่องค้นหาแบบ Responsive พร้อม Padding ด้านขวา
+
+        // ---- แถบค้นหา (Autocomplete) โผล่ที่มุมขวา ----
         Padding(
           padding: const EdgeInsets.only(right: 16.0),
-          child: Flexible(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: SizedBox(
-                width: screenWidth * 0.15,
-                child: Autocomplete<String>(
-                  optionsBuilder: (TextEditingValue textEditingValue) {
-                    if (textEditingValue.text.isEmpty) {
-                      return const Iterable<String>.empty();
-                    }
-                    return vegetables
-                        .map((veg) => veg['name'] as String)
-                        .where((name) => name
-                            .toLowerCase()
-                            .contains(textEditingValue.text.toLowerCase()))
-                        .toList();
-                  },
-                  onSelected: (String selectedName) {
-                    final selectedVegetable = vegetables.firstWhere(
-                      (veg) => veg['name'] == selectedName,
-                      orElse: () => {},
-                    );
-                    if (selectedVegetable.isNotEmpty) {
-                      // ใช้ pushReplacementNamed เพื่อหลีกเลี่ยงการ stack หน้า
-                      Navigator.pushReplacementNamed(
-                        context,
-                        '/quarterly_avg',
-                        arguments: {
-                          'vegetable': selectedVegetable,
-                          'showAppBar':
-                              false, // ส่งค่า false เพื่อไม่ให้แสดง appBar ซ้ำกัน
-                        },
-                      );
-                    }
-                  },
-                  fieldViewBuilder:
-                      (context, controller, focusNode, onFieldSubmitted) {
-                    searchController = controller;
-                    return TextField(
-                      controller: controller,
-                      focusNode: focusNode,
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.search, size: 18),
-                        hintText: 'ค้นหาผัก...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                            vertical: 5, horizontal: 10),
-                      ),
-                      style: const TextStyle(fontSize: 14),
-                    );
-                  },
-                ),
-              ),
+          child: SizedBox(
+            width: screenWidth * 0.15, // ปรับขนาดตามต้องการ
+            child: Autocomplete<String>(
+              optionsBuilder: (TextEditingValue textEditingValue) {
+                if (textEditingValue.text.isEmpty) {
+                  return const Iterable<String>.empty();
+                }
+                return vegetables.map((veg) => veg['name'] as String).where(
+                    (name) => name
+                        .toLowerCase()
+                        .contains(textEditingValue.text.toLowerCase()));
+              },
+              onSelected: (String selectedName) {
+                final veg = vegetables.firstWhere(
+                  (v) => v['name'] == selectedName,
+                  orElse: () => {},
+                );
+                if (veg.isNotEmpty) {
+                  Navigator.pushReplacementNamed(
+                    context,
+                    '/quarterly_avg',
+                    arguments: {
+                      'vegetable': veg,
+                      'showAppBar': false,
+                    },
+                  );
+                }
+              },
+              fieldViewBuilder:
+                  (context, controller, focusNode, onFieldSubmitted) {
+                searchController = controller;
+                return TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.search, size: 18),
+                    hintText: 'ค้นหาผัก...',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    contentPadding:
+                        const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                  ),
+                  style: const TextStyle(fontSize: 14),
+                );
+              },
             ),
           ),
         ),
-        // ปุ่มเปลี่ยนภาษาถูกนำออกแล้ว
       ],
-    );
-  }
-
-  Widget _buildNavItem(
-      BuildContext context, String label, String route, double textSize) {
-    return TextButton(
-      onPressed: () {
-        if (ModalRoute.of(context)?.settings.name == route) {
-          return;
-        }
-        Navigator.pushReplacementNamed(context, route);
-      },
-      child: Text(
-        label,
-        style: TextStyle(color: Colors.black, fontSize: textSize),
-      ),
     );
   }
 }

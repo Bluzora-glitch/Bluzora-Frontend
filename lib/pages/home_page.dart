@@ -15,7 +15,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // สร้าง GlobalKey สำหรับส่วน Historical Price และ Price Forecast
   final GlobalKey _newVegetablesKey = GlobalKey();
   final GlobalKey _priceForecastKey = GlobalKey();
 
@@ -23,7 +22,6 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     if (widget.scrollToHistoricalPrice) {
-      // รอจน widget ถูกวาดเสร็จแล้ว จากนั้นเลื่อนไปที่ส่วน Historical Price
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_newVegetablesKey.currentContext != null) {
           Scrollable.ensureVisible(
@@ -38,6 +36,47 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final height = MediaQuery.of(context).size.height;
+
+    // Breakpoints
+    final bool isDesktop = width >= 1024;
+    final bool isTablet = width >= 600 && width < 1024;
+
+    // Header height
+    final double headerHeight = height *
+        (isDesktop
+            ? 0.6
+            : isTablet
+                ? 0.5
+                : 0.4);
+
+    // Padding values
+    final double headerHPadding = isDesktop || isTablet ? width * 0.1 : 16;
+    final double sectionHPadding = isDesktop
+        ? 150
+        : isTablet
+            ? 80
+            : 16;
+    final double newVegHPadding = isDesktop
+        ? 80
+        : isTablet
+            ? 40
+            : 8;
+
+    // Font sizes
+    final double titleFontSize = isDesktop
+        ? 36
+        : isTablet
+            ? 32
+            : 24;
+    final double bodyFontSize = isDesktop || isTablet ? 16 : 14;
+    final double sectionHeaderSize = isDesktop
+        ? 25
+        : isTablet
+            ? 22
+            : 20;
+
     return Scaffold(
       backgroundColor: const Color(0xFFEBEDF0),
       body: SingleChildScrollView(
@@ -49,60 +88,54 @@ class _HomePageState extends State<HomePage> {
               children: [
                 Image.asset(
                   'assets/background.jpg',
-                  height: MediaQuery.of(context).size.height * 0.6,
+                  height: headerHeight,
                   width: double.infinity,
                   fit: BoxFit.cover,
                 ),
                 Padding(
                   padding: EdgeInsets.symmetric(
-                    horizontal: MediaQuery.of(context).size.width * 0.1,
+                    horizontal: headerHPadding,
                     vertical: 80,
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // ข้อความด้านซ้าย
+                      // Left text
                       Expanded(
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               'การพยากรณ์ล่วงหน้า\nเพียง 1 เดียว',
                               style: TextStyle(
-                                fontSize: 36,
+                                fontSize: titleFontSize,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
                               ),
                             ),
-                            SizedBox(height: 20),
+                            const SizedBox(height: 20),
                             Text(
-                              'วางแผนอนาคตอย่างมั่นใจด้วยระบบพยากรณ์ราคาผักล่วงหน้า\n'
-                              'ที่ช่วยให้คุณก้าวสู่ตลาดพร้อมข้อมูลเชิงลึกแบบเรียลไทม์เพื่อสนับสนุนการตัดสินใจที่ดีที่สุด',
+                              'วางแผนอนาคตอย่างมั่นใจด้วยระบบพยากรณ์ '
+                              'ที่ช่วยให้คุณก้าวสู่ตลาดพร้อมข้อมูลเชิงลึกแบบเรียลไทม์',
                               style: TextStyle(
-                                fontSize: 16,
+                                fontSize: bodyFontSize,
                                 color: Colors.white,
                               ),
                             ),
-                            SizedBox(height: 30),
+                            const SizedBox(height: 30),
                             Row(
                               children: [
                                 ElevatedButton(
-                                  onPressed: () {
-                                    Navigator.pushNamed(
-                                        context, '/price_forecast');
-                                  },
+                                  onPressed: () => Navigator.pushNamed(
+                                      context, '/price_forecast'),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.green,
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 24,
-                                      vertical: 12,
-                                    ),
+                                        horizontal: 24, vertical: 12),
                                   ),
                                   child: const Text('คำนวณการพยากรณ์'),
                                 ),
-                                SizedBox(width: 16),
+                                const SizedBox(width: 16),
                                 ElevatedButton(
                                   onPressed: () {
                                     if (_priceForecastKey.currentContext !=
@@ -118,15 +151,11 @@ class _HomePageState extends State<HomePage> {
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor:
                                         Colors.white.withOpacity(0.2),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 24,
-                                      vertical: 12,
-                                    ),
                                     side: const BorderSide(
-                                      color: Colors.white,
-                                      width: 1.5,
-                                    ),
+                                        color: Colors.white, width: 1.5),
                                     elevation: 0,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 24, vertical: 12),
                                   ),
                                   child: const Text(
                                     'รายละเอียดเพิ่มเติม',
@@ -138,36 +167,29 @@ class _HomePageState extends State<HomePage> {
                           ],
                         ),
                       ),
-                      SizedBox(width: 50),
+                      if (isDesktop) const SizedBox(width: 50),
                     ],
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 16),
-
-            // Content Section
+            const SizedBox(height: 16),
 
             // Price Forecast Section
             Center(
               key: _priceForecastKey,
               child: InkWell(
-                onTap: () {
-                  Navigator.pushNamed(context, '/price_forecast');
-                },
+                onTap: () => Navigator.pushNamed(context, '/price_forecast'),
                 splashColor: Colors.green.withOpacity(0.3),
                 child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: MediaQuery.of(context).size.width > 1024
-                        ? 150.0
-                        : MediaQuery.of(context).size.width > 600
-                            ? 80.0
-                            : 16.0,
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: sectionHPadding),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SectionHeader(title: 'พยากรณ์ราคาผัก'),
+                      SectionHeader(
+                        title: 'พยากรณ์ราคาผัก',
+                        fontSize: sectionHeaderSize,
+                      ),
                       const PriceForecastComponent(),
                       const SizedBox(height: 16),
                     ],
@@ -179,22 +201,17 @@ class _HomePageState extends State<HomePage> {
             // Comparison Section
             Center(
               child: InkWell(
-                onTap: () {
-                  Navigator.pushNamed(context, '/comparison');
-                },
+                onTap: () => Navigator.pushNamed(context, '/comparison'),
                 splashColor: Colors.green.withOpacity(0.3),
                 child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: MediaQuery.of(context).size.width > 1024
-                        ? 150.0
-                        : MediaQuery.of(context).size.width > 600
-                            ? 80.0
-                            : 16.0,
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: sectionHPadding),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SectionHeader(title: 'การเปรียบเทียบ'),
+                      SectionHeader(
+                        title: 'การเปรียบเทียบ',
+                        fontSize: sectionHeaderSize,
+                      ),
                       const ComparisonComponent(),
                       const SizedBox(height: 16),
                     ],
@@ -203,7 +220,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
 
-            // Price Monitoring Section (เลื่อนไปที่ส่วน Historical Price)
+            // Quarterly Prices Section
             Center(
               child: InkWell(
                 onTap: () {
@@ -217,17 +234,14 @@ class _HomePageState extends State<HomePage> {
                 },
                 splashColor: Colors.green.withOpacity(0.3),
                 child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: MediaQuery.of(context).size.width > 1024
-                        ? 150.0
-                        : MediaQuery.of(context).size.width > 600
-                            ? 80.0
-                            : 16.0,
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: sectionHPadding),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SectionHeader(title: 'ข้อมูลราคาย้อนหลัง'),
+                      SectionHeader(
+                        title: 'ข้อมูลราคาย้อนหลัง',
+                        fontSize: sectionHeaderSize,
+                      ),
                       const QuarterlyPricesComponent(),
                       const SizedBox(height: 16),
                     ],
@@ -236,39 +250,34 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
 
-            // Historical Price Section (New Vegetables Section)
+            // New Vegetables Section
             Center(
               key: _newVegetablesKey,
               child: Padding(
                 padding: EdgeInsets.symmetric(
-                  horizontal: MediaQuery.of(context).size.width > 1024
-                      ? 80.0
-                      : MediaQuery.of(context).size.width > 600
-                          ? 40.0
-                          : 8.0,
-                  vertical: 10.0,
+                  horizontal: newVegHPadding,
+                  vertical: 10,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'ข้อมูลราคาย้อนหลัง',
-                      style:
-                          TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: sectionHeaderSize,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
+                    const SizedBox(height: 8),
                     SizedBox(
-                      height: MediaQuery.of(context).size.width > 1024
+                      height: isDesktop
                           ? 320
-                          : MediaQuery.of(context).size.width > 600
+                          : isTablet
                               ? 300
                               : 280,
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            VegetableCardScreen(),
-                          ],
-                        ),
+                        child: Row(children: const [VegetableCardScreen()]),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -277,25 +286,21 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
 
-            // ตารางผัก Section
+            // Vegetable Table Section
             Center(
               child: Padding(
                 padding: EdgeInsets.symmetric(
-                  horizontal: MediaQuery.of(context).size.width > 1024
-                      ? 150.0
-                      : MediaQuery.of(context).size.width > 600
-                          ? 80.0
-                          : 16.0,
-                  vertical: 5.0,
+                  horizontal: sectionHPadding,
+                  vertical: 5,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      height: MediaQuery.of(context).size.height *
-                          (MediaQuery.of(context).size.width > 1024
+                      height: height *
+                          (isDesktop
                               ? 0.8
-                              : MediaQuery.of(context).size.width > 600
+                              : isTablet
                                   ? 0.7
                                   : 0.6),
                       decoration: BoxDecoration(
@@ -324,41 +329,19 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
+// Reusable section header
 class SectionHeader extends StatelessWidget {
   final String title;
-  const SectionHeader({required this.title});
+  final double fontSize;
+  const SectionHeader({required this.title, this.fontSize = 22});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Text(
         title,
-        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-}
-
-class FeatureList extends StatelessWidget {
-  final List<String> features;
-  const FeatureList({required this.features});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: features
-            .map((feature) => Row(
-                  children: [
-                    const Icon(Icons.check, color: Colors.green),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(feature)),
-                  ],
-                ))
-            .toList(),
+        style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold),
       ),
     );
   }
