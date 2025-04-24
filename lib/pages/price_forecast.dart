@@ -425,23 +425,41 @@ class _GraphPlaceholderState extends State<GraphPlaceholder> {
     _tooltipBehavior = TooltipBehavior(
       enable: true,
       builder: (dynamic data, dynamic point, dynamic series, int pi, int si) {
-        final cd = data as ChartData;
-        final isPred = cd.predictedPrice != null && cd.predictedPrice! > 0;
-        final typeText = isPred ? "ราคาพยากรณ์" : "ราคาย้อนหลัง";
-        final priceText = isPred
-            ? cd.predictedPrice!.toStringAsFixed(0)
-            : (cd.avgPrice?.toStringAsFixed(0) ?? '-');
+        final ChartData d = data as ChartData;
+
+        // ถ้า type จาก API เป็น predicted
+        if (d.type == 'predicted') {
+          return Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.black87,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              "วันที่: ${DateFormat('d MMM yyyy').format(d.date)}\n"
+              "ราคาพยากรณ์: ฿${d.predictedPrice?.toStringAsFixed(0) ?? '-'}",
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+            ),
+          );
+        }
+
+        // มิฉะนั้นถือเป็น historical
         return Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-              color: Colors.black87, borderRadius: BorderRadius.circular(4)),
+            color: Colors.black87,
+            borderRadius: BorderRadius.circular(4),
+          ),
           child: Text(
-            "$typeText\n${DateFormat('d MMM yyyy').format(cd.date)}\n฿$priceText",
+            "วันที่: ${DateFormat('d MMM yyyy').format(d.date)}\n"
+            "ราคาเฉลี่ย: ฿${d.avgPrice?.toStringAsFixed(0) ?? '-'}\n"
+            "ช่วงราคา: ฿${d.minPrice?.toStringAsFixed(0) ?? '-'} - ฿${d.maxPrice?.toStringAsFixed(0) ?? '-'}",
             style: const TextStyle(color: Colors.white, fontSize: 12),
           ),
         );
       },
     );
+
     fetchData();
   }
 
@@ -472,20 +490,26 @@ class _GraphPlaceholderState extends State<GraphPlaceholder> {
             pred.sort((a, b) =>
                 DateTime.parse(a['date']).compareTo(DateTime.parse(b['date'])));
             setState(() {
+              // สำหรับ historical
               historicalData = hist
                   .map((item) => ChartData(
                         date: DateTime.parse(item['date']),
                         minPrice: (item['min_price'] as num).toDouble(),
                         maxPrice: (item['max_price'] as num).toDouble(),
                         avgPrice: (item['price'] as num).toDouble(),
+                        type: item['type'], // เก็บ type จาก API
                       ))
                   .toList();
+
+              // สำหรับ predicted
               predictedData = pred
                   .map((item) => ChartData(
                         date: DateTime.parse(item['date']),
                         predictedPrice: (item['price'] as num).toDouble(),
+                        type: item['type'], // เก็บ type จาก API
                       ))
                   .toList();
+
               isGraphData = true;
               isLoading = false;
             });
@@ -583,6 +607,7 @@ class ChartData {
   final double? maxPrice;
   final double? avgPrice;
   final double? predictedPrice;
+  final String type;
 
   ChartData({
     required this.date,
@@ -590,5 +615,6 @@ class ChartData {
     this.maxPrice,
     this.avgPrice,
     this.predictedPrice,
+    required this.type,
   });
 }
