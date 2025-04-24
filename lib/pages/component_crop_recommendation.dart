@@ -130,14 +130,33 @@ class CropRecommendationWidget extends StatelessWidget {
           children: [
             header,
             const SizedBox(height: 16),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: plantingInfoColumn),
-                const SizedBox(width: 16),
-                Expanded(child: priceAnalysisColumn),
-              ],
-            ),
+
+            // เช็คว่าเป็นมือถือหรือไม่ (ตัวอย่างใช้ < 600 px)
+            Builder(builder: (context) {
+              final isMobile = MediaQuery.of(context).size.width < 600;
+              if (isMobile) {
+                // บนมือถือ: แสดง 1 คอลัมน์
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    plantingInfoColumn,
+                    const SizedBox(height: 16),
+                    priceAnalysisColumn,
+                  ],
+                );
+              } else {
+                // บน tablet/desktop: แสดง 2 คอลัมน์
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: plantingInfoColumn),
+                    const SizedBox(width: 16),
+                    Expanded(child: priceAnalysisColumn),
+                  ],
+                );
+              }
+            }),
+
             const SizedBox(height: 16),
             buttonRow,
           ],
