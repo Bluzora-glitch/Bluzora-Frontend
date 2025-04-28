@@ -5,7 +5,7 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:url_launcher/url_launcher.dart';
-
+import 'package:flutter/foundation.dart';
 import 'component_crop_recommendation.dart';
 
 class PriceForecastPage extends StatefulWidget {
@@ -30,8 +30,20 @@ class _PriceForecastPageState extends State<PriceForecastPage> {
     loadVegetableData();
   }
 
+  // ฟังก์ชันเพื่อให้ API Base URL แตกต่างกันระหว่าง development และ production
+  String getApiBaseUrl() {
+    if (kReleaseMode) {
+      // ใน production (Render)
+      return 'https://bluzora-backend.onrender.com/api/';
+    } else {
+      // ใน development (localhost)
+      return 'http://127.0.0.1:8000/api/';
+    }
+  }
+
   Future<void> loadVegetableData() async {
-    final url = 'http://127.0.0.1:8000/api/crops-list/';
+    final url =
+        '${getApiBaseUrl()}crops-list/'; // ใช้ String Interpolation ที่นี่
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -57,10 +69,13 @@ class _PriceForecastPageState extends State<PriceForecastPage> {
     if (selectedVegetable == null ||
         selectedStartDate == null ||
         selectedEndDate == null) return;
-    final url = 'http://127.0.0.1:8000/api/combined-priceforecast/'
+
+    // ใช้ String Interpolation และ getApiBaseUrl() เพื่อสร้าง URL
+    final url = '${getApiBaseUrl()}combined-priceforecast/'
         '?vegetableName=$selectedVegetable'
         '&startDate=$selectedStartDate'
         '&endDate=$selectedEndDate';
+
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -117,10 +132,13 @@ class _PriceForecastPageState extends State<PriceForecastPage> {
       );
       return;
     }
-    final url = 'http://127.0.0.1:8000/api/export-excel/'
+
+    // ใช้ String Interpolation และ getApiBaseUrl() เพื่อสร้าง URL
+    final url = '${getApiBaseUrl()}export-excel/'
         '?vegetableName=$selectedVegetable'
         '&startDate=$selectedStartDate'
         '&endDate=$selectedEndDate';
+
     if (await canLaunch(url)) {
       await launch(url);
     }

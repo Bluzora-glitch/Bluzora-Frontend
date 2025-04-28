@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
-
+import 'package:flutter/foundation.dart';
 import 'vegetableForecastCard.dart';
 import 'ComparisonGraph.dart';
 
@@ -26,8 +26,20 @@ class _ComparisonPageState extends State<ComparisonPage> {
     loadVegetablesData();
   }
 
+  // ฟังก์ชันที่ให้ API Base URL แตกต่างกันระหว่าง development และ production
+  String getApiBaseUrl() {
+    if (kReleaseMode) {
+      // ใน production (Render)
+      return 'https://bluzora-backend.onrender.com/api/';
+    } else {
+      // ใน development (localhost)
+      return 'http://127.0.0.1:8000/api/';
+    }
+  }
+
   Future<void> loadVegetablesData() async {
-    const url = 'http://127.0.0.1:8000/api/crop-info-list/';
+    final url =
+        '${getApiBaseUrl()}crop-info-list/'; // ใช้ String Interpolation ที่นี่
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -48,10 +60,12 @@ class _ComparisonPageState extends State<ComparisonPage> {
   }
 
   Future<Map<String, dynamic>> fetchForecastData(String cropName) async {
-    final url = 'http://127.0.0.1:8000/api/combined-priceforecast/'
+    // ใช้ String Interpolation และ getApiBaseUrl() เพื่อสร้าง URL
+    final url = '${getApiBaseUrl()}combined-priceforecast/'
         '?vegetableName=$cropName'
         '&startDate=$startDate'
         '&endDate=$endDate';
+
     final response = await http.get(Uri.parse(url));
     if (response.statusCode != 200) {
       throw Exception('Failed to load forecast data');
