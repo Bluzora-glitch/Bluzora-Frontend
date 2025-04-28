@@ -1,0 +1,13 @@
+services:
+  - type: static
+    name: flutter-web-frontend
+    env: static
+    repo: https://github.com/Bluzora-glitch/Bluzora-Frontend
+    branch: main
+    buildCommand: flutter build web --release
+    staticPublishPath: build/web
+    pullRequestPreviewsEnabled: true
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
