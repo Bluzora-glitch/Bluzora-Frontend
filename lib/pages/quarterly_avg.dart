@@ -771,24 +771,8 @@ class PriceTableNew extends StatelessWidget {
                   flex: 5,
                   child: Row(
                     children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        margin: const EdgeInsets.only(right: 8),
-                        child: Image.network(
-                          imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Center(
-                              child: Text(
-                                "Image not available",
-                                style: TextStyle(fontSize: 10),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      Flexible(
+                      Expanded(
+                        flex: 5,
                         child: Text(
                           name,
                           overflow: TextOverflow.ellipsis,
