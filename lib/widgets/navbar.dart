@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
 
 class Navbar extends StatefulWidget implements PreferredSizeWidget {
   const Navbar({Key? key}) : super(key: key);
@@ -22,8 +23,17 @@ class _NavbarState extends State<Navbar> {
     _loadVegetables();
   }
 
+// เพิ่มฟังก์ชัน getApiBaseUrl() ตรงนี้
+  String getApiBaseUrl() {
+    if (kReleaseMode) {
+      return 'https://bluzora-backend.onrender.com/api/';
+    } else {
+      return 'http://127.0.0.1:8000/api/';
+    }
+  }
+
   Future<void> _loadVegetables() async {
-    const String url = 'http://127.0.0.1:8000/api/crop-info-list/';
+    final url = '${getApiBaseUrl()}crop-info-list/';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
