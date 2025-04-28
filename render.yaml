@@ -1,11 +1,11 @@
 services:
   - type: static
-    name: flutter-web-frontend
+    name: bluzora-frontend
     env: static
     repo: https://github.com/Bluzora-glitch/Bluzora-Frontend
     branch: main
-    buildCommand: flutter build web --release
-    staticPublishPath: build/web
+    buildCommand: "" # ไม่มีคำสั่ง build เพราะเรา build เองแล้ว
+    staticPublishPath: web_output
     pullRequestPreviewsEnabled: true
     headers:
       - path: /*
