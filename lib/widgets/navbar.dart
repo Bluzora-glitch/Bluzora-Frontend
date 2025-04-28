@@ -59,98 +59,111 @@ class _NavbarState extends State<Navbar> {
       barrierDismissible: true,
       barrierLabel: 'Drawer',
       pageBuilder: (_, __, ___) {
+        // สร้าง controller ใหม่สำหรับ drawer
+        final TextEditingController drawerController = TextEditingController();
+
         return Align(
           alignment: Alignment.centerLeft,
           child: SafeArea(
-            child: Material(
-              color: Colors.white,
-              child: Container(
-                width: 270,
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Search field
-                    TextField(
-                      controller: searchController,
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.search),
-                        hintText: 'ค้นหาผัก...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+            child: StatefulBuilder(
+              builder: (context, setStateDialog) {
+                return Material(
+                  color: Colors.white,
+                  child: Container(
+                    width: 270,
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Search field
+                        TextField(
+                          controller: drawerController,
+                          decoration: InputDecoration(
+                            prefixIcon: const Icon(Icons.search),
+                            hintText: 'ค้นหาผัก...',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          onChanged: (value) {
+                            setStateDialog(() {}); // Refresh เฉพาะใน dialog
+                          },
                         ),
-                      ),
-                      onChanged: (_) => setState(() {}),
-                    ),
-                    const SizedBox(height: 10),
-                    // Search suggestions
-                    if (searchController.text.isNotEmpty)
-                      Expanded(
-                        child: ListView(
-                          children: vegetables
-                              .map((v) => v['name'] as String)
-                              .where((name) => name.toLowerCase().contains(
-                                  searchController.text.toLowerCase()))
-                              .map((name) => ListTile(
-                                    title: Text(name),
-                                    onTap: () {
-                                      // navigate to quarterly avg page
-                                      final veg = vegetables.firstWhere(
-                                          (v) => v['name'] == name,
-                                          orElse: () => {});
-                                      if (veg.isNotEmpty) {
-                                        Navigator.pushReplacementNamed(
-                                          context,
-                                          '/quarterly_avg',
-                                          arguments: {
-                                            'vegetable': veg,
-                                            'showAppBar': false,
-                                          },
-                                        );
-                                      }
-                                    },
-                                  ))
-                              .toList(),
+                        const SizedBox(height: 10),
+
+                        // Search suggestions
+                        if (drawerController.text.isNotEmpty)
+                          Expanded(
+                            child: ListView(
+                              children: vegetables
+                                  .map((v) => v['name'] as String)
+                                  .where((name) => name.toLowerCase().contains(
+                                      drawerController.text.toLowerCase()))
+                                  .map((name) => ListTile(
+                                        title: Text(name),
+                                        onTap: () {
+                                          final veg = vegetables.firstWhere(
+                                            (v) => v['name'] == name,
+                                            orElse: () => {},
+                                          );
+                                          if (veg.isNotEmpty) {
+                                            Navigator.pushReplacementNamed(
+                                              context,
+                                              '/quarterly_avg',
+                                              arguments: {
+                                                'vegetable': veg,
+                                                'showAppBar': false,
+                                              },
+                                            );
+                                          }
+                                        },
+                                      ))
+                                  .toList(),
+                            ),
+                          ),
+
+                        const Divider(),
+
+                        // Navigation items (เหมือนเดิม)
+                        ListTile(
+                          leading: const Icon(Icons.home),
+                          title: const Text('Home'),
+                          onTap: () {
+                            Navigator.pushReplacementNamed(context, '/');
+                          },
                         ),
-                      ),
-                    const Divider(),
-                    // Navigation items
-                    ListTile(
-                      leading: const Icon(Icons.home),
-                      title: const Text('Home'),
-                      onTap: () {
-                        Navigator.pushReplacementNamed(context, '/');
-                      },
+                        ListTile(
+                          leading: const Icon(Icons.show_chart),
+                          title: const Text('Price Forecast'),
+                          onTap: () {
+                            Navigator.pushReplacementNamed(
+                                context, '/price_forecast');
+                          },
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.history),
+                          title: const Text('Historical Price'),
+                          onTap: () {
+                            Navigator.pushReplacementNamed(
+                              context,
+                              '/',
+                              arguments: {'scrollToHistoricalPrice': true},
+                            );
+                          },
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.compare),
+                          title: const Text('Comparison'),
+                          onTap: () {
+                            Navigator.pushReplacementNamed(
+                                context, '/comparison');
+                          },
+                        ),
+                      ],
                     ),
-                    ListTile(
-                      leading: const Icon(Icons.show_chart),
-                      title: const Text('Price Forecast'),
-                      onTap: () {
-                        Navigator.pushReplacementNamed(
-                            context, '/price_forecast');
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.history),
-                      title: const Text('Historical Price'),
-                      onTap: () {
-                        Navigator.pushReplacementNamed(
-                          context,
-                          '/',
-                          arguments: {'scrollToHistoricalPrice': true},
-                        );
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.compare),
-                      title: const Text('Comparison'),
-                      onTap: () {
-                        Navigator.pushReplacementNamed(context, '/comparison');
-                      },
-                    ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             ),
           ),
         );
