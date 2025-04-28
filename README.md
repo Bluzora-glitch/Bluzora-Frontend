@@ -7,6 +7,7 @@ flutter pub get
 flutter run -d chrome
 
 update code deploy render ใช้เวลาแก้โค้ด พิมพ์ตามนี้ก่อนใน powershell ให้ได้ ไฟล์ build ใหม่ ก่อนอัพลง git แล้ว render จะอัพเดต
+
 flutter build web --release
 Remove-Item -Recurse -Force web_output
 New-Item -ItemType Directory -Path web_output
