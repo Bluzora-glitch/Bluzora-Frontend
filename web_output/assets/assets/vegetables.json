@@ -1,0 +1,80 @@
+[
+    {
+      "name": "ผักชีไทย",
+      "unit": "กิโลกรัม",
+      "price": "฿100 - ฿120 / กิโลกรัม",
+      "change": "↑ 0%",
+      "image": "assets/cilantro.png",
+      "status" : "up" ,
+      "dailyPrices": [
+        {"date": "2025-01-20", "price": "฿105"},
+        {"date": "2025-01-21", "price": "฿110"},
+        {"date": "2025-01-22", "price": "฿108"},
+        {"date": "2025-01-23", "price": "฿107"},
+        {"date": "2025-01-24", "price": "฿109"}
+      ]
+    },
+    {
+      "name": "พริกหนุ่มสวน",
+      "unit": "กิโลกรัม",
+      "price": "฿130 - ฿180 / กิโลกรัม",
+      "change": "↑ 0%",
+      "image": "assets/chili.jpg",
+      "status" : "up" ,
+      "dailyPrices": [
+        {"date": "2025-01-20", "price": "฿150"},
+        {"date": "2025-01-21", "price": "฿152"},
+        {"date": "2025-01-22", "price": "฿148"},
+        {"date": "2025-01-23", "price": "฿151"},
+        {"date": "2025-01-24", "price": "฿153"}
+      ]
+    },
+    {
+      "name": "ถั่วฝักยาว",
+      "unit": "กิโลกรัม",
+      "price": "฿25 - ฿40 / กิโลกรัม",
+      "change": "↑ 0%",
+      "image": "assets/long_bean.jpg",
+      "status" : "up" ,
+      "dailyPrices": [
+        {"date": "2025-01-20", "price": "฿30"},
+        {"date": "2025-01-21", "price": "฿31"},
+        {"date": "2025-01-22", "price": "฿29"},
+        {"date": "2025-01-23", "price": "฿30"},
+        {"date": "2025-01-24", "price": "฿32"}
+      ]
+    },
+    {
+      "name": "ต้นหอม",
+      "unit": "กิโลกรัม",
+      "price": "฿100 - ฿130 / กิโลกรัม",
+      "change": "↑ 0%",
+      "image": "assets/spring_onion.jpg",
+      "status" : "up" ,
+      "dailyPrices": [
+        {"date": "2025-01-20", "price": "฿115"},
+        {"date": "2025-01-21", "price": "฿118"},
+        {"date": "2025-01-22", "price": "฿116"},
+        {"date": "2025-01-23", "price": "฿117"},
+        {"date": "2025-01-24", "price": "฿119"},
+        {"date": "2025-01-25", "price": "฿120"}
+      ]
+    },
+    {
+      "name": "ผักบุ้งจีน",
+      "unit": "กิโลกรัม",
+      "price": "฿25 - ฿40 / กิโลกรัม",
+      "change": "↑ 0%",
+      "image": "assets/morning_glory.png",
+      "status" : "up" ,
+      "dailyPrices": [
+        {"date": "2025-01-20", "price": "฿30"},
+        {"date": "2025-01-21", "price": "฿29"},
+        {"date": "2025-01-22", "price": "฿28"},
+        {"date": "2025-01-23", "price": "฿31"},
+        {"date": "2025-01-24", "price": "฿32"},
+        {"date": "2025-01-25", "price": "฿33"}
+      ]
+    }
+  ]
+  
