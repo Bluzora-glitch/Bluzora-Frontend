@@ -17,7 +17,7 @@ git status
 git branch
 git remote -v
 git add .
-git commit -m "แก้ปัญหาเรียกapiโหลดช้า"
+git commit -m "update url image"
 git push -f origin main
 git push origin frontend_with_api
 git push origin frontend_edit_price_forecast

@@ -776,22 +776,8 @@ class PriceTableNew extends StatelessWidget {
                         height: 40,
                         margin: const EdgeInsets.only(right: 8),
                         child: Image.network(
-                          // ดึง URL จาก entry['image'] แล้วแปลง http -> https
-                          (entry['image'] as String)
-                              .replaceFirst('http:', 'https:'),
+                          imageUrl,
                           fit: BoxFit.cover,
-                          // ถ้าอยากแสดง Indicator ตอนโหลดก็เพิ่ม loadingBuilder ได้
-                          loadingBuilder: (context, child, progress) {
-                            if (progress == null) return child;
-                            return Center(
-                              child: CircularProgressIndicator(
-                                value: progress.expectedTotalBytes != null
-                                    ? progress.cumulativeBytesLoaded /
-                                        progress.expectedTotalBytes!
-                                    : null,
-                              ),
-                            );
-                          },
                           errorBuilder: (context, error, stackTrace) {
                             return const Center(
                               child: Text(
