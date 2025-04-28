@@ -44804,7 +44804,7 @@ this.C1()},
 C1(){var s=0,r=A.N(t.H),q=1,p=[],o=this,n,m,l,k,j,i,h,g,f,e
 var $async$C1=A.J(function(a,b){if(a===1){p.push(b)
 s=q}while(true)switch(s){case 0:g=o.a
-f="http://127.0.0.1:8000/api/combined-priceforecast/?vegetableName="+g.c+"&startDate="+g.d+"&endDate="+g.e
+f=u.a+g.c+"&startDate="+g.d+"&endDate="+g.e
 q=3
 s=6
 return A.Q(A.mF(A.dG(f,0,null)),$async$C1)
