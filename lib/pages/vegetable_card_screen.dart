@@ -233,10 +233,25 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Image.network(
-                  vegetable['image'] ?? '',
+                  // แปลง http → https เผื่อต้องโหลดผ่าน HTTPS เท่านั้น
+                  (vegetable['image'] as String? ?? '')
+                      .replaceFirst('http:', 'https:'),
                   height: imageHeight,
-                  fit: BoxFit.cover,
                   width: double.infinity,
+                  fit: BoxFit.cover,
+                  // แสดงตัวชี้วัดระหว่างโหลดภาพ
+                  loadingBuilder: (context, child, progress) {
+                    if (progress == null) return child;
+                    return Center(
+                      child: CircularProgressIndicator(
+                        value: progress.expectedTotalBytes != null
+                            ? progress.cumulativeBytesLoaded /
+                                progress.expectedTotalBytes!
+                            : null,
+                      ),
+                    );
+                  },
+                  // ถ้าโหลดไม่สำเร็จ fallback เป็น asset เหมือนเดิม
                   errorBuilder: (context, error, stackTrace) {
                     return Image.asset(
                       'assets/vegetables.png',
