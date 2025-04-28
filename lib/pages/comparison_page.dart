@@ -203,6 +203,8 @@ class _ComparisonPageState extends State<ComparisonPage> {
                   children: selectedVegetables.map((vegName) {
                     final vegetable =
                         vegetables.firstWhere((v) => v['name'] == vegName);
+                    final imageUrl = (vegetable['image'] as String)
+                        .replaceFirst('http:', 'https:');
                     return SizedBox(
                       width: cardWidth,
                       child: Card(
@@ -212,9 +214,20 @@ class _ComparisonPageState extends State<ComparisonPage> {
                         child: Column(
                           children: [
                             Image.network(
-                              vegetable['image'],
+                              imageUrl,
                               height: 120,
                               fit: BoxFit.cover,
+                              loadingBuilder: (context, child, progress) {
+                                if (progress == null) return child;
+                                return Center(
+                                  child: CircularProgressIndicator(
+                                    value: progress.expectedTotalBytes != null
+                                        ? progress.cumulativeBytesLoaded /
+                                            progress.expectedTotalBytes!
+                                        : null,
+                                  ),
+                                );
+                              },
                               errorBuilder: (context, error, stackTrace) {
                                 return Image.asset(
                                   'assets/vegetables.jpg',
@@ -281,6 +294,8 @@ class _ComparisonPageState extends State<ComparisonPage> {
                     final vegName = selectedVegetables[idx];
                     final veg =
                         vegetables.firstWhere((v) => v['name'] == vegName);
+                    final imageUrl = (veg['image'] as String)
+                        .replaceFirst('http:', 'https:');
                     return FutureBuilder<Map<String, dynamic>>(
                       future: (startDate == null || endDate == null)
                           ? Future.error("ยังไม่ได้เลือกวันที่")
@@ -294,7 +309,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
                         } else {
                           final data = snap.data!;
                           return VegetableForecastCard(
-                            imageUrl: veg['image'],
+                            imageUrl: imageUrl,
                             name: veg['name'],
                             price: 'ราคาพยากรณ์: ${veg['price']}',
                             startDate: startDate!,

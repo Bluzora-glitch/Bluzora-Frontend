@@ -516,10 +516,29 @@ class _VegetableSelectionState extends State<VegetableSelection> {
             width: imageSize,
             height: imageSize,
             child: Image.network(
-              widget.vegetable['image'],
+              // ดึงจาก widget.vegetable['image'] แล้วแปลง http → https
+              (widget.vegetable['image'] as String)
+                  .replaceFirst('http:', 'https:'),
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) =>
-                  const Center(child: Text("Image not available")),
+              // แสดงตัวชี้วัดระหว่างโหลด
+              loadingBuilder: (context, child, progress) {
+                if (progress == null) return child;
+                return Center(
+                  child: CircularProgressIndicator(
+                    value: progress.expectedTotalBytes != null
+                        ? progress.cumulativeBytesLoaded /
+                            progress.expectedTotalBytes!
+                        : null,
+                  ),
+                );
+              },
+              // กรณีโหลดไม่สำเร็จ
+              errorBuilder: (_, __, ___) => const Center(
+                child: Text(
+                  "Image not available",
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 16),
@@ -757,8 +776,22 @@ class PriceTableNew extends StatelessWidget {
                         height: 40,
                         margin: const EdgeInsets.only(right: 8),
                         child: Image.network(
-                          imageUrl,
+                          // ดึง URL จาก entry['image'] แล้วแปลง http -> https
+                          (entry['image'] as String)
+                              .replaceFirst('http:', 'https:'),
                           fit: BoxFit.cover,
+                          // ถ้าอยากแสดง Indicator ตอนโหลดก็เพิ่ม loadingBuilder ได้
+                          loadingBuilder: (context, child, progress) {
+                            if (progress == null) return child;
+                            return Center(
+                              child: CircularProgressIndicator(
+                                value: progress.expectedTotalBytes != null
+                                    ? progress.cumulativeBytesLoaded /
+                                        progress.expectedTotalBytes!
+                                    : null,
+                              ),
+                            );
+                          },
                           errorBuilder: (context, error, stackTrace) {
                             return const Center(
                               child: Text(
