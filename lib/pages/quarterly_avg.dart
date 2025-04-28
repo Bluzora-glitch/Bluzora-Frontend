@@ -7,6 +7,7 @@ import 'component_comparison.dart';
 import 'component_price_forecast.dart';
 import 'yearly_comparison_graph.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/foundation.dart';
 
 class QuarterlyAvgPage extends StatefulWidget {
   final Map<String, dynamic> vegetable;
@@ -40,11 +41,25 @@ class _QuarterlyAvgPageState extends State<QuarterlyAvgPage> {
     _fetchData();
   }
 
+  // ฟังก์ชันที่ให้ API Base URL แตกต่างกันระหว่าง development และ production
+  String getApiBaseUrl() {
+    if (kReleaseMode) {
+      // ใน production (Render)
+      return 'https://bluzora-backend.onrender.com/api/';
+    } else {
+      // ใน development (localhost)
+      return 'http://127.0.0.1:8000/api/';
+    }
+  }
+
   Future<void> _fetchData() async {
     setState(() => isLoading = true);
     final cropName = widget.vegetable['name'];
+
+    // ใช้ String Interpolation และ getApiBaseUrl() เพื่อสร้าง URL
     final url =
-        'http://127.0.0.1:8000/api/quarterly-avg/?crop_name=$cropName&startDate=$startDate&endDate=$endDate';
+        '${getApiBaseUrl()}quarterly-avg/?crop_name=$cropName&startDate=$startDate&endDate=$endDate';
+
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -75,8 +90,11 @@ class _QuarterlyAvgPageState extends State<QuarterlyAvgPage> {
 
   Future<void> _downloadExcel() async {
     final cropName = widget.vegetable['name'];
+
+    // ใช้ String Interpolation และ getApiBaseUrl() เพื่อสร้าง URL
     final url =
-        'http://127.0.0.1:8000/api/export-excel/?vegetableName=$cropName&startDate=$startDate&endDate=$endDate';
+        '${getApiBaseUrl()}export-excel/?vegetableName=$cropName&startDate=$startDate&endDate=$endDate';
+
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -98,9 +116,12 @@ class _QuarterlyAvgPageState extends State<QuarterlyAvgPage> {
       final newStart = DateTime(currentYear - yearDiff, start.month, start.day);
       final newEnd = DateTime(currentYear - yearDiff, end.month, end.day);
       final cropName = widget.vegetable['name'];
-      final url = 'http://127.0.0.1:8000/api/quarterly-avg/?crop_name=$cropName'
+
+      // ใช้ String Interpolation และ getApiBaseUrl() เพื่อสร้าง URL
+      final url = '${getApiBaseUrl()}quarterly-avg/?crop_name=$cropName'
           '&startDate=${newStart.toString().split(" ")[0]}'
           '&endDate=${newEnd.toString().split(" ")[0]}';
+
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);

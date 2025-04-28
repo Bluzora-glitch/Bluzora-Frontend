@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'quarterly_avg.dart';
+import 'package:flutter/foundation.dart';
 
 class VegetableScreen extends StatefulWidget {
   const VegetableScreen({Key? key}) : super(key: key);
@@ -22,9 +23,20 @@ class _VegetableScreenState extends State<VegetableScreen> {
     _loadVegetables();
   }
 
+  // ฟังก์ชันที่ให้ API Base URL แตกต่างกันระหว่าง development และ production
+  String getApiBaseUrl() {
+    if (kReleaseMode) {
+      // ใน production (Render)
+      return 'https://bluzora-backend.onrender.com/api/';
+    } else {
+      // ใน development (localhost)
+      return 'http://127.0.0.1:8000/api/';
+    }
+  }
+
   // ดึงข้อมูลผักจาก Django API endpoint
   Future<void> _loadVegetables() async {
-    final url = 'http://127.0.0.1:8000/api/crop-info-list/';
+    final url = '${getApiBaseUrl()}crop-info-list/';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'quarterly_avg.dart';
+import 'package:flutter/foundation.dart';
 
 class VegetableCardScreen extends StatefulWidget {
   const VegetableCardScreen({super.key});
@@ -26,8 +27,20 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
     super.dispose();
   }
 
+  // ฟังก์ชันที่ให้ API Base URL แตกต่างกันระหว่าง development และ production
+  String getApiBaseUrl() {
+    if (kReleaseMode) {
+      // ใน production (Render)
+      return 'https://bluzora-backend.onrender.com/api/';
+    } else {
+      // ใน development (localhost)
+      return 'http://127.0.0.1:8000/api/';
+    }
+  }
+
   Future<void> _loadVegetables() async {
-    const url = 'http://127.0.0.1:8000/api/crop-info-list/';
+    final url =
+        '${getApiBaseUrl()}crop-info-list/'; // ใช้ String Interpolation ที่นี่
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -78,9 +91,8 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
   }
 
   Widget _buildDesktopView() {
-    // กำหนดความกว้างเป็น 80% ของหน้าจอเพื่อให้เกิด overflow แน่นอน
     double containerWidth = MediaQuery.of(context).size.width * 0.8;
-    double containerHeight = 300; // ความสูงของส่วนการ์ด
+    double containerHeight = 300;
 
     return Center(
       child: SizedBox(
@@ -89,7 +101,6 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            // แถวของการ์ดผัก
             SingleChildScrollView(
               controller: _scrollController,
               scrollDirection: Axis.horizontal,
@@ -102,7 +113,6 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
                 }).toList(),
               ),
             ),
-            // ปุ่มเลื่อนซ้าย
             Positioned(
               left: 0,
               top: 0,
@@ -121,7 +131,6 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
                 ),
               ),
             ),
-            // ปุ่มเลื่อนขวา
             Positioned(
               right: 0,
               top: 0,
@@ -146,7 +155,6 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
     );
   }
 
-  /// สำหรับมือถือ: แสดงเป็นรายการแนวตั้ง
   Widget _buildMobileListView() {
     return ListView.builder(
       shrinkWrap: true,
@@ -158,7 +166,6 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
     );
   }
 
-  /// ปุ่มกลมๆ สำหรับเลื่อนซ้าย-ขวา
   Widget _buildCircleButton({
     required IconData icon,
     required VoidCallback onTap,
@@ -169,7 +176,7 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
       height: 40,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: Colors.white.withOpacity(0.7), // ปรับความเข้มให้เห็นชัดขึ้น
+        color: Colors.white.withOpacity(0.7),
       ),
       child: IconButton(
         icon: Icon(icon, size: 20),
@@ -178,28 +185,26 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
     );
   }
 
-  /// สร้างการ์ดสำหรับแต่ละรายการผัก
   Widget _buildVegetableCard(Map<String, dynamic> vegetable) {
     double screenWidth = MediaQuery.of(context).size.width;
 
-    // ปรับขนาดการ์ดตามขนาดหน้าจอ
     double cardWidth = screenWidth > 1024
-        ? 200 // เดสก์ท็อป
+        ? 200
         : screenWidth > 600
-            ? 160 // แท็บเล็ต
-            : 120; // มือถือ
+            ? 160
+            : 120;
 
     double cardHeight = screenWidth > 1024
-        ? 300 // เดสก์ท็อป
+        ? 300
         : screenWidth > 600
-            ? 260 // แท็บเล็ต
-            : 220; // มือถือ
+            ? 260
+            : 220;
 
     double imageHeight = screenWidth > 1024
-        ? 150 // เดสก์ท็อป
+        ? 150
         : screenWidth > 600
-            ? 110 // แท็บเล็ต
-            : 70; // มือถือ
+            ? 110
+            : 70;
 
     double verticalMargin = screenWidth > 1024
         ? 8.0
@@ -233,7 +238,6 @@ class _VegetableCardScreenState extends State<VegetableCardScreen> {
                   fit: BoxFit.cover,
                   width: double.infinity,
                   errorBuilder: (context, error, stackTrace) {
-                    // เมื่อไม่สามารถโหลดรูปจาก URL ได้ ให้แสดงรูป default จาก assets
                     return Image.asset(
                       'assets/vegetables.png',
                       height: imageHeight,
