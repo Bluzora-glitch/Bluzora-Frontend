@@ -429,6 +429,15 @@ class GraphPlaceholder extends StatefulWidget {
   _GraphPlaceholderState createState() => _GraphPlaceholderState();
 }
 
+// เพิ่มฟังก์ชัน getApiBaseUrl() ตรงนี้
+String getApiBaseUrl() {
+  if (kReleaseMode) {
+    return 'https://bluzora-backend.onrender.com/api/';
+  } else {
+    return 'http://127.0.0.1:8000/api/';
+  }
+}
+
 class _GraphPlaceholderState extends State<GraphPlaceholder> {
   List<ChartData> historicalData = [];
   List<ChartData> predictedData = [];
@@ -482,7 +491,7 @@ class _GraphPlaceholderState extends State<GraphPlaceholder> {
   }
 
   Future<void> fetchData() async {
-    final url = 'http://127.0.0.1:8000/api/combined-priceforecast/'
+    final url = '${getApiBaseUrl()}combined-priceforecast/'
         '?vegetableName=${widget.vegetableName}'
         '&startDate=${widget.startDate}'
         '&endDate=${widget.endDate}';
